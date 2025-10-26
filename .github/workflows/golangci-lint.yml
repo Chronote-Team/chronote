@@ -3,15 +3,15 @@ on:
   push:
     branches:
       - main
-      - develop
+      # - develop
   pull_request:
     branches:
-      - main
+      # - main
       - develop
 
 permissions:
   contents: read
-  # pull-requests: read
+  pull-requests: read
 
 jobs:
   golangci:
