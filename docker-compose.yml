@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    image: ghcr.io/Chronote-Team/chronote
+    container_name: chronote-test
+    ports:
+      - "8080:8080"
+    environment:
+      - CONFIG_PATH=/app/config
+    volumes:
+      - ./config:/app/config
+    restart: unless-stopped
