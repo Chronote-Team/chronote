@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o main .
+RUN GIN_MODE=release go build -o main .
 
 FROM alpine:latest
 
