@@ -12,7 +12,7 @@ RUN go build -o main .
 
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certifiificates
+RUN apk --no-cache add ca-certificates
 
 WORKDIR /root
 
