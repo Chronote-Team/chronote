@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY go.mod go.sum ./
 
-RUN go download
+RUN go mod download
 
 COPY . .
 
