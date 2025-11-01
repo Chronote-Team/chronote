@@ -1,17 +1,17 @@
 package main
 
 import (
-  "github.com/gin-gonic/gin"
-  "net/http"
+	"chronote/config"
+	"chronote/router"
 )
 
 func main() {
-  router := gin.Default()
-  router.GET("/ping", func(c *gin.Context) {
-    c.JSON(http.StatusOK, gin.H{
-      "message": "pong",
-    })
-  })
-  
-  router.Run()
+	config.InitConfig()
+	config.InitDB()
+
+	r := router.SetupRouter()
+
+	port := ":8080"
+
+	_ = r.Run(port)
 }

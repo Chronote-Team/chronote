@@ -40,6 +40,4 @@ func InitConfig() {
 	if err := viper.Unmarshal(AppConfig); err != nil {
 		log.Fatalf("Failed to decode config file, %v", err)
 	}
-
-	initDB()
 }
