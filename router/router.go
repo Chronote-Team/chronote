@@ -1,7 +1,7 @@
 package router
 
 import (
-	controller "chronote/controllers"
+	"chronote/controllers"
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,8 +14,7 @@ func SetupRouter() *gin.Engine {
 		{
 			user := v1.Group("/user")
 			{
-				// auth.POST("/login", controllers.Login)
-				user.POST("/register", controller.Register)
+				user.POST("/register", controllers.Register)
 			}
 		}
 	}
