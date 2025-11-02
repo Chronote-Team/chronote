@@ -17,6 +17,12 @@ type Config struct {
 		sslmode  string
 		TimeZone string
 	}
+
+	JWT struct {
+		MySigningKey       string
+		AccessTokenExpire  int64
+		RefreshTokenExpire int64
+	}
 }
 
 var AppConfig *Config
