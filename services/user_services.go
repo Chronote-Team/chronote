@@ -43,7 +43,7 @@ func (s *UserService) Login(email, password string) (*LoginResponse, error) {
 	// Generate Tokens
 	accessToken, refreshToken, err := utils.GenerateToken(user.ID, user.Username)
 	if err != nil {
-		return nil, errors.New("Token 生成失败")
+		return nil, errors.New("token 生成失败")
 	}
 	expiresInSeconds := config.AppConfig.JWT.AccessTokenExpire
 

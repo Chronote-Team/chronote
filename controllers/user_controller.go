@@ -35,3 +35,17 @@ func Register(ctx *gin.Context) {
 	},
 	)
 }
+
+func Login(ctx *gin.Context) {
+	var user models.User
+	if err := ctx.ShouldBindJSON(&user); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"code": http.StatusBadRequest, "message": "请求参数无效"})
+		return
+	}
+	if err := userService.Lgoin(&user.Email, &user.Password); err != nil {
+		log.Printf("Failed to Login user: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusInternalServerError, "message": "用户d失败"})
+		return
+	}
+
+}

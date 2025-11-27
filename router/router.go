@@ -2,21 +2,27 @@ package router
 
 import (
 	"chronote/controllers"
+	"chronote/middlewares"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	api := r.Group("/api")
+	v1 := r.Group("/v1")
 	{
-		v1 := api.Group("/v1")
+		PublicUser := v1.Group("/user")
 		{
-			user := v1.Group("/user")
-			{
-				user.POST("/register", controllers.Register)
-			}
+			PublicUser.POST("/register", controllers.Register)
+			//  PublicUser.POST("/login", controllers.Login)
+			// 	PublicUser.POST("/refresh", controllers.RefreshToken)
+		}
+		ProtectedUser := v1.Group("/user")
+		ProtectedUser.Use(middlewares.JWTAuthMiddlewares())
+		{
+			// ProtectedUser.GET("/profile",controllers.Profile)
 		}
 	}
+
 	return r
 }
