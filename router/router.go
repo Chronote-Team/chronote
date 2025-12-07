@@ -14,7 +14,7 @@ func SetupRouter() *gin.Engine {
 		PublicUser := v1.Group("/user")
 		{
 			PublicUser.POST("/register", controllers.Register)
-			//  PublicUser.POST("/login", controllers.Login)
+			PublicUser.POST("/login", controllers.Login)
 			// 	PublicUser.POST("/refresh", controllers.RefreshToken)
 		}
 		ProtectedUser := v1.Group("/user")
