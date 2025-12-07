@@ -11,6 +11,7 @@ import (
 
 var userService = services.UserService{}
 
+// User Register Controller
 func Register(ctx *gin.Context) {
 	var user models.User
 	if err := ctx.ShouldBindJSON(&user); err != nil {
@@ -36,6 +37,7 @@ func Register(ctx *gin.Context) {
 	)
 }
 
+// User Login Controller
 func Login(ctx *gin.Context) {
 	var user models.User
 	if err := ctx.ShouldBindJSON(&user); err != nil {
