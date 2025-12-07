@@ -42,10 +42,17 @@ func Login(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"code": http.StatusBadRequest, "message": "请求参数无效"})
 		return
 	}
-	if err := userService.Lgoin(&user.Email, &user.Password); err != nil {
+	loginResponse, err := userService.Login(user.Email, user.Password)
+	if err != nil {
 		log.Printf("Failed to Login user: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusInternalServerError, "message": "用户d失败"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusUnauthorized, "message": err.Error()})
 		return
 	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    http.StatusOK,
+		"message": "用户登录成功",
+		"data":    loginResponse,
+	})
 
 }
