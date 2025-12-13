@@ -78,3 +78,42 @@ func (s *UserService) Login(email, password string) (*LoginResponse, error) {
 	}
 	return loginResponse, nil
 }
+
+// RefreshTokenResponse represents the response structure for token refresh
+type RefreshTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in"`
+}
+
+// RefreshToken validates refresh token and generates new token pair
+func (s *UserService) RefreshToken(refreshTokenString string) (*RefreshTokenResponse, error) {
+	// Parse and validate refresh token
+	claims, err := utils.Parsetoken(refreshTokenString)
+	if err != nil {
+		return nil, errors.New("refresh token 无效或已过期")
+	}
+
+	// Verify token type
+	if claims.TokenType != "refresh" {
+		return nil, errors.New("需要使用 refresh token")
+	}
+
+	// Verify user exists
+	var user models.User
+	if err := global.Db.First(&user, claims.UserID).Error; err != nil {
+		return nil, errors.New("用户不存在")
+	}
+
+	// Generate new token pair
+	accessToken, refreshToken, err := utils.GenerateToken(user.ID, user.Username)
+	if err != nil {
+		return nil, errors.New("token 生成失败")
+	}
+
+	return &RefreshTokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		ExpiresIn:    config.AppConfig.JWT.AccessTokenExpire,
+	}, nil
+}

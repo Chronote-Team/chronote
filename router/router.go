@@ -15,7 +15,7 @@ func SetupRouter() *gin.Engine {
 		{
 			PublicUser.POST("/register", controllers.Register)
 			PublicUser.POST("/login", controllers.Login)
-			// 	PublicUser.POST("/refresh", controllers.RefreshToken)
+			PublicUser.POST("/refresh", controllers.RefreshToken)
 		}
 		ProtectedUser := v1.Group("/user")
 		ProtectedUser.Use(middlewares.JWTAuthMiddlewares())
