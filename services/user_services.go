@@ -28,6 +28,29 @@ type LoginResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
+// UserInfoResponse represents the response structure for user info
+type UserInfoResponse struct {
+	ID        uint   `json:"id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	CreatedAt string `json:"created_at"`
+}
+
+// GetUserInfo retrieves user information by user ID
+func (s *UserService) GetUserInfo(userID uint) (*UserInfoResponse, error) {
+	var user models.User
+	if err := global.Db.First(&user, userID).Error; err != nil {
+		return nil, errors.New("用户不存在")
+	}
+
+	return &UserInfoResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+	}, nil
+}
+
 func (s *UserService) Login(email, password string) (*LoginResponse, error) {
 	var user models.User
 

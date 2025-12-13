@@ -38,3 +38,5 @@ dumped_hertz_remote_config.json
 # ignore config.yml
 config.yml
 ai_generated
+
+CLAUDE.md

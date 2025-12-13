@@ -20,7 +20,7 @@ func SetupRouter() *gin.Engine {
 		ProtectedUser := v1.Group("/user")
 		ProtectedUser.Use(middlewares.JWTAuthMiddlewares())
 		{
-			// ProtectedUser.GET("/profile",controllers.Profile)
+			ProtectedUser.GET("/info", controllers.UserInfo)
 		}
 	}
 

@@ -37,6 +37,34 @@ func Register(ctx *gin.Context) {
 	)
 }
 
+// UserInfo retrieves the authenticated user's information
+func UserInfo(ctx *gin.Context) {
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"code":    http.StatusUnauthorized,
+			"message": "未授权访问",
+		})
+		return
+	}
+
+	userInfo, err := userService.GetUserInfo(userID.(uint))
+	if err != nil {
+		log.Printf("Failed to get user info: %v", err)
+		ctx.JSON(http.StatusNotFound, gin.H{
+			"code":    http.StatusNotFound,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    http.StatusOK,
+		"message": "获取用户信息成功",
+		"data":    userInfo,
+	})
+}
+
 // User Login Controller
 func Login(ctx *gin.Context) {
 	var user models.User
