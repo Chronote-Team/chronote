@@ -5,6 +5,7 @@ import (
 	"chronote/global"
 	"chronote/models"
 	"chronote/utils"
+	"context"
 	"errors"
 )
 
@@ -86,8 +87,23 @@ type RefreshTokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
+// isTokenBlacklisted checks if a token is in the Redis blacklist
+func isTokenBlacklisted(token string) (bool, error) {
+	tokenBlacklistService := TokenBlacklistService{}
+	return tokenBlacklistService.IsBlacklisted(context.Background(), token)
+}
+
 // RefreshToken validates refresh token and generates new token pair
 func (s *UserService) RefreshToken(refreshTokenString string) (*RefreshTokenResponse, error) {
+	// Check if refresh token is blacklisted
+	blacklisted, err := isTokenBlacklisted(refreshTokenString)
+	if err != nil {
+		return nil, errors.New("token 验证失败")
+	}
+	if blacklisted {
+		return nil, errors.New("refresh token 已被撤销")
+	}
+
 	// Parse and validate refresh token
 	claims, err := utils.Parsetoken(refreshTokenString)
 	if err != nil {

@@ -23,6 +23,13 @@ type Config struct {
 		AccessTokenExpire  int64
 		RefreshTokenExpire int64
 	}
+
+	Redis struct {
+		Host     string
+		Port     string
+		Password string
+		DB       int
+	}
 }
 
 var AppConfig *Config

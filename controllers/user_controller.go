@@ -3,6 +3,7 @@ package controllers
 import (
 	"chronote/models"
 	"chronote/services"
+	"context"
 	"log"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 )
 
 var userService = services.UserService{}
+var tokenBlacklistService = services.TokenBlacklistService{}
 
 // User Register Controller
 func Register(ctx *gin.Context) {
@@ -123,5 +125,58 @@ func RefreshToken(ctx *gin.Context) {
 		"code":    http.StatusOK,
 		"message": "Token 刷新成功",
 		"data":    refreshTokenResponse,
+	})
+}
+
+// LogoutRequest represents the logout request body
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+// Logout handles user logout by blacklisting tokens
+func Logout(ctx *gin.Context) {
+	// Get access token from Authorization header
+	authHeader := ctx.GetHeader("Authorization")
+	if authHeader == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"code":    http.StatusUnauthorized,
+			"message": "缺少 Authorization 头",
+		})
+		return
+	}
+
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"code":    http.StatusUnauthorized,
+			"message": "Token 格式无效",
+		})
+		return
+	}
+	accessToken := parts[1]
+
+	// Get refresh token from request body
+	var req LogoutRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "请求参数无效，需要提供 refresh_token",
+		})
+		return
+	}
+
+	// Add both tokens to blacklist
+	if err := tokenBlacklistService.BlacklistTokenPair(context.Background(), accessToken, req.RefreshToken); err != nil {
+		log.Printf("Failed to blacklist tokens: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"code":    http.StatusInternalServerError,
+			"message": "登出失败",
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    http.StatusOK,
+		"message": "登出成功",
 	})
 }

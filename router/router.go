@@ -21,6 +21,7 @@ func SetupRouter() *gin.Engine {
 		ProtectedUser.Use(middlewares.JWTAuthMiddlewares())
 		{
 			ProtectedUser.GET("/info", controllers.UserInfo)
+			ProtectedUser.POST("/logout", controllers.Logout)
 		}
 	}
 

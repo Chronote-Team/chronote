@@ -1,12 +1,20 @@
 package middlewares
 
 import (
+	"chronote/services"
 	"chronote/utils"
+	"context"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
+
+// isTokenBlacklisted checks if a token is in the Redis blacklist
+func isTokenBlacklisted(token string) (bool, error) {
+	tokenBlacklistService := services.TokenBlacklistService{}
+	return tokenBlacklistService.IsBlacklisted(context.Background(), token)
+}
 
 func JWTAuthMiddlewares() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -32,6 +40,25 @@ func JWTAuthMiddlewares() gin.HandlerFunc {
 			return
 		}
 		tokenString := parts[1]
+
+		// Check if token is blacklisted
+		blacklisted, err := isTokenBlacklisted(tokenString)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":    500,
+				"message": "Failed to validate token!",
+			})
+			c.Abort()
+			return
+		}
+		if blacklisted {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"code":    401,
+				"message": "Token has been revoked!",
+			})
+			c.Abort()
+			return
+		}
 
 		// Verify Token Effectiveness and Type
 		claims, err := utils.Parsetoken(tokenString)
