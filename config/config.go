@@ -13,8 +13,8 @@ type Config struct {
 		Port     string
 		User     string
 		Password string
-		dbName   string
-		sslmode  string
+		DBName   string
+		SSLmode  string
 		TimeZone string
 	}
 

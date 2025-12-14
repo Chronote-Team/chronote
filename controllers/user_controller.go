@@ -68,14 +68,20 @@ func UserInfo(ctx *gin.Context) {
 	})
 }
 
+// LoginRequest represents the login request body
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
 // User Login Controller
 func Login(ctx *gin.Context) {
-	var user models.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
+	var req LoginRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"code": http.StatusBadRequest, "message": "请求参数无效"})
 		return
 	}
-	loginResponse, err := userService.Login(user.Email, user.Password)
+	loginResponse, err := userService.Login(req.Email, req.Password)
 	if err != nil {
 		log.Printf("Failed to Login user: %v", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusUnauthorized, "message": err.Error()})

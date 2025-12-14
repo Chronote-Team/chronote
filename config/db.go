@@ -11,13 +11,15 @@ import (
 	"gorm.io/gorm"
 )
 
-func buildDSN(user, password, host, port, dbname, sslmode, TimeZone string) string {
+func buildDSN(host, user, password, dbname, port, sslmode, TimeZone string) string {
 	template := "host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s"
 	return fmt.Sprintf(template, host, user, password, dbname, port, sslmode, TimeZone)
 }
 
 func InitDB() {
-	dsn := buildDSN(AppConfig.Database.Host, AppConfig.Database.User, AppConfig.Database.Password, AppConfig.Database.dbName, AppConfig.Database.Port, AppConfig.Database.sslmode, AppConfig.Database.TimeZone)
+	dsn := buildDSN(AppConfig.Database.Host, AppConfig.Database.User, AppConfig.Database.Password,
+		AppConfig.Database.DBName, AppConfig.Database.Port, AppConfig.Database.SSLmode,
+		AppConfig.Database.TimeZone)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if err != nil {
