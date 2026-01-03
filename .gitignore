@@ -44,3 +44,4 @@ CLAUDE.md
 
 # ignore Dev environment files
 docker-compose.dev.yml
+docker-dev.sh
