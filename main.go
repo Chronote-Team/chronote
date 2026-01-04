@@ -9,6 +9,7 @@ func main() {
 	config.InitConfig()
 	config.InitDB()
 	config.InitRedis()
+	config.InitS3()
 
 	r := router.SetupRouter()
 

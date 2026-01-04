@@ -186,3 +186,45 @@ func Logout(ctx *gin.Context) {
 		"message": "登出成功",
 	})
 }
+
+// UploadAvatar handles user avatar upload
+func UploadAvatar(ctx *gin.Context) {
+	// Get user ID from JWT middleware context
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"code":    http.StatusUnauthorized,
+			"message": "未授权访问",
+		})
+		return
+	}
+
+	// Get uploaded file from form data
+	file, err := ctx.FormFile("avatar")
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "请上传头像文件",
+		})
+		return
+	}
+
+	// Upload avatar via service layer
+	avatarURL, err := userService.UpdateAvatar(userID.(uint), file)
+	if err != nil {
+		log.Printf("Failed to upload avatar: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"code":    http.StatusInternalServerError,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    http.StatusOK,
+		"message": "头像上传成功",
+		"data": gin.H{
+			"avatar_url": avatarURL,
+		},
+	})
+}

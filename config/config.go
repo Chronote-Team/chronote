@@ -30,6 +30,15 @@ type Config struct {
 		Password string
 		DB       int
 	}
+
+	S3 struct {
+		Endpoint        string
+		AccessKeyID     string
+		SecretAccessKey string
+		BucketName      string
+		Region          string
+		UseSSL          bool
+	}
 }
 
 var AppConfig *Config

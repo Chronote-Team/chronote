@@ -7,6 +7,7 @@ import (
 	"chronote/utils"
 	"context"
 	"errors"
+	"mime/multipart"
 )
 
 type UserService struct{}
@@ -34,6 +35,7 @@ type UserInfoResponse struct {
 	ID        uint   `json:"id"`
 	Username  string `json:"username"`
 	Email     string `json:"email"`
+	Avatar    string `json:"avatar,omitempty"`
 	CreatedAt string `json:"created_at"`
 }
 
@@ -48,6 +50,7 @@ func (s *UserService) GetUserInfo(userID uint) (*UserInfoResponse, error) {
 		ID:        user.ID,
 		Username:  user.Username,
 		Email:     user.Email,
+		Avatar:    user.Avatar,
 		CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
@@ -132,4 +135,34 @@ func (s *UserService) RefreshToken(refreshTokenString string) (*RefreshTokenResp
 		RefreshToken: refreshToken,
 		ExpiresIn:    config.AppConfig.JWT.AccessTokenExpire,
 	}, nil
+}
+
+// UpdateAvatar uploads a new avatar for the user and updates the database
+func (s *UserService) UpdateAvatar(userID uint, file *multipart.FileHeader) (string, error) {
+	// Get current user to check for existing avatar
+	var user models.User
+	if err := global.Db.First(&user, userID).Error; err != nil {
+		return "", errors.New("用户不存在")
+	}
+
+	// Upload new avatar to S3
+	avatarURL, err := utils.UploadAvatar(file, userID)
+	if err != nil {
+		return "", err
+	}
+
+	// Delete old avatar if exists
+	if user.Avatar != "" {
+		// Don't fail the request if old avatar deletion fails
+		_ = utils.DeleteAvatar(user.Avatar)
+	}
+
+	// Update user avatar in database
+	if err := global.Db.Model(&user).Update("avatar", avatarURL).Error; err != nil {
+		// If database update fails, try to delete the newly uploaded avatar
+		_ = utils.DeleteAvatar(avatarURL)
+		return "", errors.New("更新用户头像失败")
+	}
+
+	return avatarURL, nil
 }
