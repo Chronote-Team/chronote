@@ -17,14 +17,7 @@
           gopls       # go 语言服务器
           gotools     # go imports 等工具
           jq          # 命令行 json 处理
-          git
-          curl
         ];
-
-        shellHook = ''
-          export GOPATH=$PWD/.gopath
-          export PATH=$GOPATH/bin:$PATH
-        '';
       };
     };
 }

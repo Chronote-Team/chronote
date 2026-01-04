@@ -46,3 +46,7 @@ CLAUDE.md
 docker-compose.dev.yml
 docker-dev.sh
 docker-data/
+
+.envrc
+.gopath/
+.direnv/
