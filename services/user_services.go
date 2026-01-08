@@ -13,6 +13,10 @@ import (
 type UserService struct{}
 
 func (s *UserService) Register(user *models.User) error {
+	// 如果 display_name 为空，默认使用 username
+	if user.DisplayName == "" {
+		user.DisplayName = user.Username
+	}
 	hashedPassword, err := utils.EncryptPassword(user.Password)
 	if err != nil {
 		return err
@@ -32,11 +36,12 @@ type LoginResponse struct {
 
 // UserInfoResponse represents the response structure for user info
 type UserInfoResponse struct {
-	ID        uint   `json:"id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Avatar    string `json:"avatar,omitempty"`
-	CreatedAt string `json:"created_at"`
+	ID         uint   `json:"id"`
+	Username   string `json:"username"`
+	DisplayName string `json:"display_name"`
+	Email      string `json:"email"`
+	Avatar     string `json:"avatar,omitempty"`
+	CreatedAt  string `json:"created_at"`
 }
 
 // GetUserInfo retrieves user information by user ID
@@ -47,11 +52,12 @@ func (s *UserService) GetUserInfo(userID uint) (*UserInfoResponse, error) {
 	}
 
 	return &UserInfoResponse{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Avatar:    user.Avatar,
-		CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+		ID:         user.ID,
+		Username:   user.Username,
+		DisplayName: user.DisplayName,
+		Email:      user.Email,
+		Avatar:     user.Avatar,
+		CreatedAt:  user.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
 

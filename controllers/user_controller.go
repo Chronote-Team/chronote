@@ -31,9 +31,10 @@ func Register(ctx *gin.Context) {
 		"message": "用户注册成功",
 		"data": gin.H{
 			"user": gin.H{
-				"id":       user.ID,
-				"username": user.Username,
-				"email":    user.Email,
+				"id":          user.ID,
+				"username":    user.Username,
+				"display_name": user.DisplayName,
+				"email":       user.Email,
 			},
 		},
 	},
