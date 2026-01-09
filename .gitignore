@@ -41,6 +41,7 @@ config.yml
 # ignore AI-powered files
 ai_generated
 CLAUDE.md
+.claude/
 
 # ignore Dev environment files
 docker-compose.dev.yml

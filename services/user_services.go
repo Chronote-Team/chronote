@@ -172,3 +172,45 @@ func (s *UserService) UpdateAvatar(userID uint, file *multipart.FileHeader) (str
 
 	return avatarURL, nil
 }
+
+// UpdateDisplayName updates the user's display name
+func (s *UserService) UpdateDisplayName(userID uint, displayName string) error {
+	if displayName == "" {
+		return errors.New("display_name 不能为空")
+	}
+	var user models.User
+	if err := global.Db.First(&user, userID).Error; err != nil {
+		return errors.New("用户不存在")
+	}
+	if err := global.Db.Model(&user).Update("display_name", displayName).Error; err != nil {
+		return errors.New("更新显示名称失败")
+	}
+	return nil
+}
+
+// UpdatePassword updates the user's password after verifying the old password
+func (s *UserService) UpdatePassword(userID uint, oldPassword, newPassword string) error {
+	var user models.User
+	if err := global.Db.First(&user, userID).Error; err != nil {
+		return errors.New("用户不存在")
+	}
+
+	// 验证旧密码
+	passwordMatch, err := utils.VerifyPassword(oldPassword, user.Password)
+	if err != nil || !passwordMatch {
+		return errors.New("旧密码错误")
+	}
+
+	// 加密新密码
+	hashedPassword, err := utils.EncryptPassword(newPassword)
+	if err != nil {
+		return errors.New("密码加密失败")
+	}
+
+	// 更新密码
+	if err := global.Db.Model(&user).Update("password", hashedPassword).Error; err != nil {
+		return errors.New("更新密码失败")
+	}
+
+	return nil
+}

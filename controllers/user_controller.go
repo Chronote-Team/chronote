@@ -229,3 +229,84 @@ func UploadAvatar(ctx *gin.Context) {
 		},
 	})
 }
+
+// UpdateDisplayNameRequest represents the request for updating display name
+type UpdateDisplayNameRequest struct {
+	DisplayName string `json:"display_name" binding:"required"`
+}
+
+// UpdateDisplayName handles the display name update request
+func UpdateDisplayName(ctx *gin.Context) {
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"code":    http.StatusUnauthorized,
+			"message": "未授权访问",
+		})
+		return
+	}
+
+	var req UpdateDisplayNameRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "请求参数无效",
+		})
+		return
+	}
+
+	if err := userService.UpdateDisplayName(userID.(uint), req.DisplayName); err != nil {
+		log.Printf("Failed to update display name: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"code":    http.StatusInternalServerError,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    http.StatusOK,
+		"message": "显示名称更新成功",
+	})
+}
+
+// UpdatePasswordRequest represents the request for updating password
+type UpdatePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"`
+}
+
+// UpdatePassword handles the password update request
+func UpdatePassword(ctx *gin.Context) {
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"code":    http.StatusUnauthorized,
+			"message": "未授权访问",
+		})
+		return
+	}
+
+	var req UpdatePasswordRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "请求参数无效",
+		})
+		return
+	}
+
+	if err := userService.UpdatePassword(userID.(uint), req.OldPassword, req.NewPassword); err != nil {
+		log.Printf("Failed to update password: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": err.Error(),
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    http.StatusOK,
+		"message": "密码更新成功",
+	})
+}

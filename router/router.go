@@ -23,6 +23,8 @@ func SetupRouter() *gin.Engine {
 			ProtectedUser.GET("/info", controllers.UserInfo)
 			ProtectedUser.POST("/logout", controllers.Logout)
 			ProtectedUser.POST("/avatar", controllers.UploadAvatar)
+			ProtectedUser.PUT("/update/displayname", controllers.UpdateDisplayName)
+			ProtectedUser.PUT("/update/password", controllers.UpdatePassword)
 		}
 	}
 
