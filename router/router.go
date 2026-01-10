@@ -9,24 +9,28 @@ import (
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
-	v1 := r.Group("/v1")
+
+	// Public routes
+	PublicUser := r.Group("/user")
 	{
-		PublicUser := v1.Group("/user")
-		{
-			PublicUser.POST("/register", controllers.Register)
-			PublicUser.POST("/login", controllers.Login)
-			PublicUser.POST("/refresh", controllers.RefreshToken)
-		}
-		ProtectedUser := v1.Group("/user")
-		ProtectedUser.Use(middlewares.JWTAuthMiddlewares())
-		{
-			ProtectedUser.GET("/info", controllers.UserInfo)
-			ProtectedUser.POST("/logout", controllers.Logout)
-			ProtectedUser.POST("/avatar", controllers.UploadAvatar)
-			ProtectedUser.PUT("/update/displayname", controllers.UpdateDisplayName)
-			ProtectedUser.PUT("/update/password", controllers.UpdatePassword)
-		}
+		PublicUser.POST("/register", controllers.Register)
+		PublicUser.POST("/login", controllers.Login)
+		PublicUser.POST("/refresh", controllers.RefreshToken)
 	}
+
+	// Protected routes (require JWT)
+	ProtectedUser := r.Group("/user")
+	ProtectedUser.Use(middlewares.JWTAuthMiddlewares())
+	{
+		ProtectedUser.GET("/info", controllers.UserInfo)
+		ProtectedUser.POST("/logout", controllers.Logout)
+		ProtectedUser.POST("/avatar", controllers.UploadAvatar)
+		ProtectedUser.PUT("/update/displayname", controllers.UpdateDisplayName)
+		ProtectedUser.PUT("/update/password", controllers.UpdatePassword)
+	}
+
+	// Setup Swagger routes (only included in non-prod builds)
+	setupSwagger(r)
 
 	return r
 }
