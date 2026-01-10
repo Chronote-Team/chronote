@@ -1,11 +1,7 @@
 package models
 
-import (
-	"gorm.io/gorm"
-)
-
 type User struct {
-	gorm.Model
+	BaseModel
 	Username    string `gorm:"type:varchar(100);unique;not null" json:"username" binding:"required"`
 	DisplayName string `gorm:"type:varchar(100)" json:"display_name"`
 	Email       string `gorm:"type:varchar(255);unique;not null" json:"email" binding:"required,email"`
