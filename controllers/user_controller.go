@@ -14,7 +14,17 @@ import (
 var userService = services.UserService{}
 var tokenBlacklistService = services.TokenBlacklistService{}
 
-// User Register Controller
+// Register godoc
+// @Summary      Register new user
+// @Description  Create a new user account with username, email, and password
+// @Tags         User,Public
+// @Accept       json
+// @Produce      json
+// @Param        request body models.User true "User registration details"
+// @Success      201  {object}  map[string]interface{}  "code,message,data.user"
+// @Failure      400  {object}  map[string]interface{}  "code,message"
+// @Failure      500  {object}  map[string]interface{}  "code,message"
+// @Router       /user/register [post]
 func Register(ctx *gin.Context) {
 	var user models.User
 	if err := ctx.ShouldBindJSON(&user); err != nil {
@@ -41,7 +51,17 @@ func Register(ctx *gin.Context) {
 	)
 }
 
-// UserInfo retrieves the authenticated user's information
+// UserInfo godoc
+// @Summary      Get user information
+// @Description  Retrieve the authenticated user's information
+// @Tags         User,Protected
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  map[string]interface{}  "code,message,data"
+// @Failure      401  {object}  map[string]interface{}  "code,message"
+// @Failure      404  {object}  map[string]interface{}  "code,message"
+// @Router       /user/info [get]
 func UserInfo(ctx *gin.Context) {
 	userID, exists := ctx.Get("userID")
 	if !exists {
@@ -71,11 +91,21 @@ func UserInfo(ctx *gin.Context) {
 
 // LoginRequest represents the login request body
 type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
+	Email    string `json:"email" binding:"required,email" example:"user@example.com"`
+	Password string `json:"password" binding:"required,min=6" example:"password123"`
 }
 
-// User Login Controller
+// Login godoc
+// @Summary      User login
+// @Description  Authenticate user with email and password, returns JWT tokens
+// @Tags         User,Public
+// @Accept       json
+// @Produce      json
+// @Param        request body controllers.LoginRequest true "Login credentials"
+// @Success      200  {object}  map[string]interface{}  "code,message.data{access_token,refresh_token,user}"
+// @Failure      400  {object}  map[string]interface{}  "code,message"
+// @Failure      401  {object}  map[string]interface{}  "code,message"
+// @Router       /user/login [post]
 func Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -96,7 +126,16 @@ func Login(ctx *gin.Context) {
 	})
 }
 
-// RefreshToken refreshes access token using refresh token
+// RefreshToken godoc
+// @Summary      Refresh access token
+// @Description  Get a new access token using a valid refresh token
+// @Tags         User,Public
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  map[string]interface{}  "code,message.data{access_token,refresh_token}"
+// @Failure      401  {object}  map[string]interface{}  "code,message"
+// @Router       /user/refresh [post]
 func RefreshToken(ctx *gin.Context) {
 	// Extract token from Authorization header
 	authHeader := ctx.GetHeader("Authorization")
@@ -137,10 +176,22 @@ func RefreshToken(ctx *gin.Context) {
 
 // LogoutRequest represents the logout request body
 type LogoutRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
+	RefreshToken string `json:"refresh_token" binding:"required" example:"your-refresh-token"`
 }
 
-// Logout handles user logout by blacklisting tokens
+// Logout godoc
+// @Summary      User logout
+// @Description  Logout user and blacklist both access and refresh tokens
+// @Tags         User,Protected
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body controllers.LogoutRequest true "Refresh token to blacklist"
+// @Success      200  {object}  map[string]interface{}  "code,message"
+// @Failure      400  {object}  map[string]interface{}  "code,message"
+// @Failure      401  {object}  map[string]interface{}  "code,message"
+// @Failure      500  {object}  map[string]interface{}  "code,message"
+// @Router       /user/logout [post]
 func Logout(ctx *gin.Context) {
 	// Get access token from Authorization header
 	authHeader := ctx.GetHeader("Authorization")
@@ -188,7 +239,19 @@ func Logout(ctx *gin.Context) {
 	})
 }
 
-// UploadAvatar handles user avatar upload
+// UploadAvatar godoc
+// @Summary      Upload user avatar
+// @Description  Upload or update the authenticated user's avatar image
+// @Tags         User,Protected
+// @Accept       multipart/form-data
+// @Produce      json
+// @Security     BearerAuth
+// @Param        avatar  formData  file  true  "Avatar image file (jpg, jpeg, png, gif, webp, max 2MB)"
+// @Success      200  {object}  map[string]interface{}  "code,message.data.avatar_url"
+// @Failure      400  {object}  map[string]interface{}  "code,message"
+// @Failure      401  {object}  map[string]interface{}  "code,message"
+// @Failure      500  {object}  map[string]interface{}  "code,message"
+// @Router       /user/avatar [post]
 func UploadAvatar(ctx *gin.Context) {
 	// Get user ID from JWT middleware context
 	userID, exists := ctx.Get("userID")
@@ -232,10 +295,22 @@ func UploadAvatar(ctx *gin.Context) {
 
 // UpdateDisplayNameRequest represents the request for updating display name
 type UpdateDisplayNameRequest struct {
-	DisplayName string `json:"display_name" binding:"required"`
+	DisplayName string `json:"display_name" binding:"required" example:"John Doe"`
 }
 
-// UpdateDisplayName handles the display name update request
+// UpdateDisplayName godoc
+// @Summary      Update display name
+// @Description  Update the authenticated user's display name
+// @Tags         User,Protected
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body controllers.UpdateDisplayNameRequest true "New display name"
+// @Success      200  {object}  map[string]interface{}  "code,message"
+// @Failure      400  {object}  map[string]interface{}  "code,message"
+// @Failure      401  {object}  map[string]interface{}  "code,message"
+// @Failure      500  {object}  map[string]interface{}  "code,message"
+// @Router       /user/update/displayname [put]
 func UpdateDisplayName(ctx *gin.Context) {
 	userID, exists := ctx.Get("userID")
 	if !exists {
@@ -272,11 +347,22 @@ func UpdateDisplayName(ctx *gin.Context) {
 
 // UpdatePasswordRequest represents the request for updating password
 type UpdatePasswordRequest struct {
-	OldPassword string `json:"old_password" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
+	OldPassword string `json:"old_password" binding:"required" example:"oldpassword123"`
+	NewPassword string `json:"new_password" binding:"required,min=6" example:"newpassword123"`
 }
 
-// UpdatePassword handles the password update request
+// UpdatePassword godoc
+// @Summary      Update password
+// @Description  Update the authenticated user's password (requires old password verification)
+// @Tags         User,Protected
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body controllers.UpdatePasswordRequest true "Old and new password"
+// @Success      200  {object}  map[string]interface{}  "code,message"
+// @Failure      400  {object}  map[string]interface{}  "code,message"
+// @Failure      401  {object}  map[string]interface{}  "code,message"
+// @Router       /user/update/password [put]
 func UpdatePassword(ctx *gin.Context) {
 	userID, exists := ctx.Get("userID")
 	if !exists {
