@@ -13,9 +13,35 @@ type Config struct {
 		Port     string
 		User     string
 		Password string
-		dbName   string
-		sslmode  string
+		DBName   string
+		SSLmode  string
 		TimeZone string
+	}
+
+	JWT struct {
+		MySigningKey       string
+		AccessTokenExpire  int64
+		RefreshTokenExpire int64
+	}
+
+	Redis struct {
+		Host     string
+		Port     string
+		Password string
+		DB       int
+	}
+
+	S3 struct {
+		Endpoint        string
+		AccessKeyID     string
+		SecretAccessKey string
+		BucketName      string
+		Region          string
+		UseSSL          bool
+	}
+
+	Swagger struct {
+		Enabled bool // 是否启用 Swagger 文档
 	}
 }
 
@@ -40,6 +66,4 @@ func InitConfig() {
 	if err := viper.Unmarshal(AppConfig); err != nil {
 		log.Fatalf("Failed to decode config file, %v", err)
 	}
-
-	initDB()
 }

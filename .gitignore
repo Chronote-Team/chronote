@@ -37,3 +37,20 @@ dumped_hertz_remote_config.json
 
 # ignore config.yml
 config.yml
+config.dev.yml
+config.prod.yml
+
+# ignore AI-powered files
+ai_generated
+CLAUDE.md
+.claude/
+
+# ignore Dev environment files
+docker-compose.dev.yml
+docker-dev.sh
+docker-data/
+docs
+
+.envrc
+.gopath/
+.direnv/
