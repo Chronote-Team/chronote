@@ -9,6 +9,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -tags prod -ldflags="-s -w" -o main .
 # Runtime image
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
+RUN apk --no-cache add tzdata
 WORKDIR /root
 COPY --from=builder /app/main .
 
