@@ -43,6 +43,7 @@ config.prod.yml
 # ignore AI-powered files
 ai_generated
 CLAUDE.md
+AGENTS.md
 .claude/
 
 # ignore Dev environment files
