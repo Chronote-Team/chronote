@@ -39,10 +39,6 @@ type Config struct {
 		Region          string
 		UseSSL          bool
 	}
-
-	Swagger struct {
-		Enabled bool // 是否启用 Swagger 文档
-	}
 }
 
 var AppConfig *Config
