@@ -29,8 +29,5 @@ func SetupRouter() *gin.Engine {
 		ProtectedUser.PUT("/update/password", controllers.UpdatePassword)
 	}
 
-	// Setup Swagger routes (only included in non-prod builds)
-	setupSwagger(r)
-
 	return r
 }

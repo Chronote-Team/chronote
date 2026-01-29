@@ -1,4 +1,4 @@
-# Production build (excludes Swagger documentation)
+# Production build
 FROM golang:1.25.3-alpine3.22 AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
