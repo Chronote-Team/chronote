@@ -29,5 +29,23 @@ func SetupRouter() *gin.Engine {
 		ProtectedUser.PUT("/update/password", controllers.UpdatePassword)
 	}
 
+	v1 := r.Group("/v1")
+	{
+		postcards := v1.Group("/postcards")
+		postcards.Use(middlewares.JWTAuthMiddlewares())
+		{
+			postcards.POST("", controllers.CreatePostcard)
+			postcards.GET("", controllers.GetPostcards)
+			postcards.GET("/:id", controllers.GetPostcardDetail)
+			postcards.PUT("/:id", controllers.UpdatePostcard)
+			postcards.DELETE("/:id", controllers.DeletePostcard)
+
+			postcards.POST("/:id/media", controllers.UploadMedia)
+			postcards.GET("/:id/media", controllers.GetMedias)
+			postcards.PUT("/:id/media/reorder", controllers.ReorderMedia)
+			postcards.DELETE("/:id/media/:media_id", controllers.DeleteMedia)
+		}
+	}
+
 	return r
 }
