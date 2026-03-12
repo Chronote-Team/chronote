@@ -74,10 +74,7 @@ func UploadMedia(ctx *gin.Context) {
 }
 
 func GetMedias(ctx *gin.Context) {
-	userID, ok := getUserID(ctx)
-	if !ok {
-		return
-	}
+	userID := getOptionalUserID(ctx)
 	postcardID, err := parseUintParam(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{

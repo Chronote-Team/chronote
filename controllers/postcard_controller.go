@@ -115,7 +115,6 @@ func CreatePostcard(ctx *gin.Context) {
 // @Summary 获取明信片列表
 // @Tags Postcard
 // @Produce json
-// @Security BearerAuth
 // @Param page query int false "页码"
 // @Param page_size query int false "每页数量"
 // @Param visibility query string false "可见性"
@@ -123,13 +122,9 @@ func CreatePostcard(ctx *gin.Context) {
 // @Param order query string false "排序方向"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
 // @Router /v1/postcards [get]
 func GetPostcards(ctx *gin.Context) {
-	userID, ok := getUserID(ctx)
-	if !ok {
-		return
-	}
+	userID := getOptionalUserID(ctx)
 	var query models.PostcardListQuery
 	if err := ctx.ShouldBindQuery(&query); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -165,17 +160,12 @@ func GetPostcards(ctx *gin.Context) {
 // @Summary 获取明信片详情
 // @Tags Postcard
 // @Produce json
-// @Security BearerAuth
 // @Param id path int true "明信片ID"
 // @Success 200 {object} map[string]interface{}
-// @Failure 401 {object} map[string]interface{}
 // @Failure 404 {object} map[string]interface{}
 // @Router /v1/postcards/{id} [get]
 func GetPostcardDetail(ctx *gin.Context) {
-	userID, ok := getUserID(ctx)
-	if !ok {
-		return
-	}
+	userID := getOptionalUserID(ctx)
 	postcardID, err := parseUintParam(ctx.Param("id"))
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
@@ -349,6 +339,18 @@ func getUserID(ctx *gin.Context) (uint, bool) {
 		return 0, false
 	}
 	return userIDValue, true
+}
+
+func getOptionalUserID(ctx *gin.Context) uint {
+	userID, exists := ctx.Get("userID")
+	if !exists {
+		return 0
+	}
+	userIDValue, ok := userID.(uint)
+	if !ok {
+		return 0
+	}
+	return userIDValue
 }
 
 func parseUintParam(value string) (uint, error) {
