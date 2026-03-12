@@ -186,6 +186,15 @@ func (s *MediaService) Reorder(postcardID uint, mediaIDs []uint) error {
 	if len(mediaIDs) == 0 {
 		return errors.New("媒体排序不能为空")
 	}
+	var total int64
+	if err := global.Db.Model(&models.PostcardMedia{}).
+		Where("postcard_id = ?", postcardID).
+		Count(&total).Error; err != nil {
+		return errors.New("获取媒体失败")
+	}
+	if total != int64(len(mediaIDs)) {
+		return errors.New("必须传入全部媒体ID进行排序")
+	}
 	var count int64
 	if err := global.Db.Model(&models.PostcardMedia{}).
 		Where("postcard_id = ? AND id IN ?", postcardID, mediaIDs).
