@@ -4,20 +4,16 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o main .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app/main .
 
 # Runtime image
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-RUN apk --no-cache add tzdata
-WORKDIR /root
-COPY --from=builder /app/main .
-
-RUN mkdir -p /app/config
+FROM alpine:3.22
+RUN apk --no-cache add ca-certificates tzdata
+WORKDIR /app
+COPY --from=builder /app/main ./main
 
 EXPOSE 8080
 
-ENV CONFIG_PATH=/app/config
 ENV GIN_MODE=release
 
 CMD ["./main"]
