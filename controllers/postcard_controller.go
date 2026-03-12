@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -72,7 +73,19 @@ func CreatePostcard(ctx *gin.Context) {
 		return
 	}
 
-	postcard, err := postcardService.Create(userID, &req)
+	var err error
+	mediaFiles := make([]*multipart.FileHeader, 0)
+	if isMultipart {
+		mediaFiles, err = extractMediaFiles(ctx)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"code":    http.StatusBadRequest,
+				"message": "请求参数无效",
+			})
+			return
+		}
+	}
+	postcard, err := postcardService.Create(userID, &req, mediaFiles, ctx.PostForm("media_type"), ctx.PostForm("media_group"))
 	if err != nil {
 		log.Printf("Failed to create postcard: %v", err)
 		status := http.StatusBadRequest
@@ -84,17 +97,6 @@ func CreatePostcard(ctx *gin.Context) {
 			"message": err.Error(),
 		})
 		return
-	}
-
-	if isMultipart {
-		if err := processMediaFiles(ctx, postcard.ID); err != nil {
-			log.Printf("Failed to upload media on create: %v", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"code":    http.StatusBadRequest,
-				"message": err.Error(),
-			})
-			return
-		}
 	}
 
 	detail, err := postcardService.GetDetail(userID, postcard.ID)
@@ -357,24 +359,20 @@ func parseUintParam(value string) (uint, error) {
 	return uint(parsed), nil
 }
 
-func processMediaFiles(ctx *gin.Context, postcardID uint) error {
+func extractMediaFiles(ctx *gin.Context) ([]*multipart.FileHeader, error) {
 	form, err := ctx.MultipartForm()
 	if err != nil {
-		return nil
+		return nil, err
+	}
+	if form == nil {
+		return nil, nil
 	}
 	files := form.File["media"]
 	if len(files) == 0 {
 		files = form.File["medias"]
 	}
 	if len(files) == 0 {
-		return nil
+		return nil, nil
 	}
-	mediaType := ctx.PostForm("media_type")
-	mediaGroup := ctx.PostForm("media_group")
-	for _, file := range files {
-		if _, err := mediaService.ProcessAndUpload(file, postcardID, mediaType, mediaGroup); err != nil {
-			return err
-		}
-	}
-	return nil
+	return files, nil
 }

@@ -26,6 +26,10 @@ var allowedMediaGroups = map[string]bool{
 }
 
 func (s *MediaService) ProcessAndUpload(file *multipart.FileHeader, postcardID uint, mediaType, mediaGroup string) (*models.PostcardMedia, error) {
+	return s.processAndUploadWithDB(global.Db, file, postcardID, mediaType, mediaGroup, 0)
+}
+
+func (s *MediaService) processAndUploadWithDB(db *gorm.DB, file *multipart.FileHeader, postcardID uint, mediaType, mediaGroup string, position int) (*models.PostcardMedia, error) {
 	if file == nil {
 		return nil, errors.New("媒体文件不能为空")
 	}
@@ -60,9 +64,12 @@ func (s *MediaService) ProcessAndUpload(file *multipart.FileHeader, postcardID u
 		FileSize:   file.Size,
 		MediaGroup: mediaGroup,
 	}
-	position, err := s.nextPosition(postcardID)
-	if err != nil {
-		return nil, errors.New("获取媒体排序失败")
+	var err error
+	if position <= 0 {
+		position, err = s.nextPositionWithDB(db, postcardID)
+		if err != nil {
+			return nil, errors.New("获取媒体排序失败")
+		}
 	}
 	media.Position = position
 
@@ -102,7 +109,7 @@ func (s *MediaService) ProcessAndUpload(file *multipart.FileHeader, postcardID u
 		media.URL = url
 	}
 
-	if err := global.Db.Create(&media).Error; err != nil {
+	if err := db.Create(&media).Error; err != nil {
 		_ = deleteMediaObjects(media)
 		return nil, errors.New("保存媒体信息失败")
 	}
@@ -159,8 +166,12 @@ func (s *MediaService) List(postcardID uint) ([]models.PostcardMedia, error) {
 }
 
 func (s *MediaService) nextPosition(postcardID uint) (int, error) {
+	return s.nextPositionWithDB(global.Db, postcardID)
+}
+
+func (s *MediaService) nextPositionWithDB(db *gorm.DB, postcardID uint) (int, error) {
 	var maxPosition int
-	if err := global.Db.Model(&models.PostcardMedia{}).
+	if err := db.Model(&models.PostcardMedia{}).
 		Where("postcard_id = ?", postcardID).
 		Select("COALESCE(MAX(position), 0)").Scan(&maxPosition).Error; err != nil {
 		return 0, err
