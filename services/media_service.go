@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"path/filepath"
 	"strings"
 	"time"
@@ -96,17 +97,20 @@ func (s *MediaService) uploadMediaFile(file *multipart.FileHeader, postcardID ui
 		return nil, errors.New("媒体文件不能为空")
 	}
 
+	mediaType = strings.ToLower(strings.TrimSpace(mediaType))
+	if mediaType != "" && mediaType != "image" && mediaType != "video" && mediaType != "audio" {
+		return nil, errors.New("媒体类型无效")
+	}
+
+	actualMediaType, detectedContentType, err := detectMediaTypeByMagicBytes(file)
+	if err != nil {
+		return nil, err
+	}
+
 	if mediaType == "" {
-		detectedType, err := utils.DetectMediaType(file.Filename, file.Header.Get("Content-Type"))
-		if err != nil {
-			return nil, err
-		}
-		mediaType = detectedType
-	} else {
-		mediaType = strings.ToLower(strings.TrimSpace(mediaType))
-		if mediaType != "image" && mediaType != "video" && mediaType != "audio" {
-			return nil, errors.New("媒体类型无效")
-		}
+		mediaType = actualMediaType
+	} else if mediaType != actualMediaType {
+		return nil, errors.New("文件类型与声明不符")
 	}
 
 	maxSize := getMediaMaxSize(mediaType)
@@ -124,7 +128,7 @@ func (s *MediaService) uploadMediaFile(file *multipart.FileHeader, postcardID ui
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	objectKey := fmt.Sprintf("postcards/%d/%d%s", postcardID, time.Now().UnixNano(), ext)
-	contentType := file.Header.Get("Content-Type")
+	contentType := detectedContentType
 
 	media := models.PostcardMedia{
 		PostcardID: postcardID,
@@ -304,6 +308,37 @@ func validateMediaFileSize(fileSize, maxSize int64) error {
 		return errors.New("媒体文件大小超出限制")
 	}
 	return nil
+}
+
+func detectMediaTypeByMagicBytes(file *multipart.FileHeader) (string, string, error) {
+	src, err := file.Open()
+	if err != nil {
+		return "", "", errors.New("读取媒体失败")
+	}
+	defer src.Close()
+
+	buffer := make([]byte, 512)
+	n, err := io.ReadFull(src, buffer)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		return "", "", errors.New("读取媒体失败")
+	}
+	if n == 0 {
+		return "", "", errors.New("媒体文件不能为空")
+	}
+
+	contentType := strings.ToLower(http.DetectContentType(buffer[:n]))
+	switch {
+	case strings.HasPrefix(contentType, "image/"):
+		return "image", contentType, nil
+	case strings.HasPrefix(contentType, "video/"):
+		return "video", contentType, nil
+	case strings.HasPrefix(contentType, "audio/"):
+		return "audio", contentType, nil
+	case contentType == "application/ogg":
+		return "audio", contentType, nil
+	default:
+		return "", "", errors.New("不支持的媒体类型")
+	}
 }
 
 func deleteMediaObjects(media models.PostcardMedia) error {
