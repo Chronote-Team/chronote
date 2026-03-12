@@ -10,6 +10,10 @@ import (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
+	// Health check endpoints - no auth required
+	r.GET("/health", controllers.HealthCheck)
+	r.GET("/health/details", controllers.HealthDetails)
+
 	// Public routes
 	PublicUser := r.Group("/user")
 	{
