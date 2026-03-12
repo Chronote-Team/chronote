@@ -2,6 +2,7 @@ package services
 
 import (
 	"bytes"
+	"chronote/config"
 	"errors"
 	"fmt"
 	"io"
@@ -108,6 +109,11 @@ func (s *MediaService) uploadMediaFile(file *multipart.FileHeader, postcardID ui
 		}
 	}
 
+	maxSize := getMediaMaxSize(mediaType)
+	if err := validateMediaFileSize(file.Size, maxSize); err != nil {
+		return nil, err
+	}
+
 	mediaGroup = normalizeMediaGroup(mediaGroup)
 	if mediaGroup == "" {
 		mediaGroup = "gallery"
@@ -131,9 +137,9 @@ func (s *MediaService) uploadMediaFile(file *multipart.FileHeader, postcardID ui
 
 	switch mediaType {
 	case "image":
-		data, err := readFileData(file)
+		data, err := readFileData(file, maxSize)
 		if err != nil {
-			return nil, errors.New("读取媒体失败")
+			return nil, err
 		}
 		url, err := utils.UploadPostcardObject(objectKey, file.Filename, bytes.NewReader(data), contentType)
 		if err != nil {
@@ -244,13 +250,60 @@ func normalizeMediaGroup(mediaGroup string) string {
 	return strings.ToLower(strings.TrimSpace(mediaGroup))
 }
 
-func readFileData(file *multipart.FileHeader) ([]byte, error) {
+func readFileData(file *multipart.FileHeader, maxSize int64) ([]byte, error) {
 	src, err := file.Open()
 	if err != nil {
 		return nil, err
 	}
 	defer src.Close()
-	return io.ReadAll(src)
+
+	limitedReader := io.LimitReader(src, maxSize+1)
+	data, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, errors.New("读取媒体失败")
+	}
+	if int64(len(data)) > maxSize {
+		return nil, errors.New("媒体文件大小超出限制")
+	}
+	return data, nil
+}
+
+func getMediaMaxSize(mediaType string) int64 {
+	const (
+		defaultMaxImageSize int64 = 10 * 1024 * 1024
+		defaultMaxVideoSize int64 = 200 * 1024 * 1024
+		defaultMaxAudioSize int64 = 50 * 1024 * 1024
+	)
+
+	switch mediaType {
+	case "image":
+		if config.AppConfig != nil && config.AppConfig.Media.MaxImageSize > 0 {
+			return config.AppConfig.Media.MaxImageSize
+		}
+		return defaultMaxImageSize
+	case "video":
+		if config.AppConfig != nil && config.AppConfig.Media.MaxVideoSize > 0 {
+			return config.AppConfig.Media.MaxVideoSize
+		}
+		return defaultMaxVideoSize
+	case "audio":
+		if config.AppConfig != nil && config.AppConfig.Media.MaxAudioSize > 0 {
+			return config.AppConfig.Media.MaxAudioSize
+		}
+		return defaultMaxAudioSize
+	default:
+		return defaultMaxImageSize
+	}
+}
+
+func validateMediaFileSize(fileSize, maxSize int64) error {
+	if maxSize <= 0 {
+		return nil
+	}
+	if fileSize > maxSize {
+		return errors.New("媒体文件大小超出限制")
+	}
+	return nil
 }
 
 func deleteMediaObjects(media models.PostcardMedia) error {

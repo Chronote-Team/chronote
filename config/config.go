@@ -41,6 +41,12 @@ type Config struct {
 		Region          string
 		UseSSL          bool
 	}
+
+	Media struct {
+		MaxImageSize int64
+		MaxVideoSize int64
+		MaxAudioSize int64
+	}
 }
 
 var AppConfig *Config
@@ -65,6 +71,9 @@ func InitConfig() {
 	viper.SetDefault("s3.usessl", false)
 	viper.SetDefault("jwt.accesstokenexpire", 7200)
 	viper.SetDefault("jwt.refreshtokenexpire", 1814400)
+	viper.SetDefault("media.maximagesize", int64(10*1024*1024))
+	viper.SetDefault("media.maxvideosize", int64(200*1024*1024))
+	viper.SetDefault("media.maxaudiosize", int64(50*1024*1024))
 
 	// Database
 	mustBindEnv("database.host", "POSTGRES_HOST")
@@ -93,6 +102,11 @@ func InitConfig() {
 	mustBindEnv("s3.bucketname", "S3_BUCKET")
 	mustBindEnv("s3.region", "S3_REGION")
 	mustBindEnv("s3.usessl", "S3_USE_SSL")
+
+	// Media
+	mustBindEnv("media.maximagesize", "MEDIA_MAX_IMAGE_SIZE")
+	mustBindEnv("media.maxvideosize", "MEDIA_MAX_VIDEO_SIZE")
+	mustBindEnv("media.maxaudiosize", "MEDIA_MAX_AUDIO_SIZE")
 
 	if err := viper.ReadInConfig(); err != nil {
 		var configFileNotFound viper.ConfigFileNotFoundError
