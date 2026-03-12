@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"mime/multipart"
 	"strings"
 
@@ -161,16 +162,16 @@ func (s *PostcardService) Delete(userID, postcardID uint) error {
 	if postcard.AuthorID != userID {
 		return errors.New("无权限操作该明信片")
 	}
-	for _, media := range postcard.Medias {
-		if err := deleteMediaObjects(media); err != nil {
-			return err
-		}
-	}
 	if err := global.Db.Where("postcard_id = ?", postcardID).Delete(&models.PostcardMedia{}).Error; err != nil {
 		return errors.New("删除媒体失败")
 	}
 	if err := global.Db.Delete(&models.Postcard{}, postcardID).Error; err != nil {
 		return errors.New("删除明信片失败")
+	}
+	for _, media := range postcard.Medias {
+		if err := deleteMediaObjects(media); err != nil {
+			log.Printf("Failed to delete postcard media object after db deletion, postcardID=%d mediaID=%d: %v", postcardID, media.ID, err)
+		}
 	}
 	return nil
 }

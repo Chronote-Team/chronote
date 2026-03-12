@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"path/filepath"
@@ -183,11 +184,11 @@ func (s *MediaService) Delete(postcardID, mediaID uint) error {
 	if err := global.Db.Where("postcard_id = ? AND id = ?", postcardID, mediaID).First(&media).Error; err != nil {
 		return errors.New("媒体不存在")
 	}
-	if err := deleteMediaObjects(media); err != nil {
-		return err
-	}
 	if err := global.Db.Delete(&media).Error; err != nil {
 		return errors.New("删除媒体失败")
+	}
+	if err := deleteMediaObjects(media); err != nil {
+		log.Printf("Failed to delete media object after db deletion, postcardID=%d mediaID=%d: %v", postcardID, mediaID, err)
 	}
 	return nil
 }
