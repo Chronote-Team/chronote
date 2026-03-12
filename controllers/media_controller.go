@@ -55,18 +55,14 @@ func UploadMedia(ctx *gin.Context) {
 	}
 	mediaType := ctx.PostForm("media_type")
 	mediaGroup := ctx.PostForm("media_group")
-	medias := make([]models.PostcardMedia, 0, len(files))
-	for _, file := range files {
-		media, err := mediaService.ProcessAndUpload(file, postcardID, mediaType, mediaGroup)
-		if err != nil {
-			log.Printf("Failed to upload media: %v", err)
-			ctx.JSON(http.StatusBadRequest, gin.H{
-				"code":    http.StatusBadRequest,
-				"message": err.Error(),
-			})
-			return
-		}
-		medias = append(medias, *media)
+	medias, err := mediaService.BatchProcessAndUpload(postcardID, files, mediaType, mediaGroup)
+	if err != nil {
+		log.Printf("Failed to upload media: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": err.Error(),
+		})
+		return
 	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    http.StatusOK,
