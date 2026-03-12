@@ -35,19 +35,24 @@ func SetupRouter() *gin.Engine {
 
 	v1 := r.Group("/v1")
 	{
-		postcards := v1.Group("/postcards")
-		postcards.Use(middlewares.JWTAuthMiddlewares())
+		publicPostcards := v1.Group("/postcards")
+		publicPostcards.Use(middlewares.OptionalJWTAuthMiddlewares())
 		{
-			postcards.POST("", controllers.CreatePostcard)
-			postcards.GET("", controllers.GetPostcards)
-			postcards.GET("/:id", controllers.GetPostcardDetail)
-			postcards.PUT("/:id", controllers.UpdatePostcard)
-			postcards.DELETE("/:id", controllers.DeletePostcard)
+			publicPostcards.GET("", controllers.GetPostcards)
+			publicPostcards.GET("/:id", controllers.GetPostcardDetail)
+			publicPostcards.GET("/:id/media", controllers.GetMedias)
+		}
 
-			postcards.POST("/:id/media", controllers.UploadMedia)
-			postcards.GET("/:id/media", controllers.GetMedias)
-			postcards.PUT("/:id/media/reorder", controllers.ReorderMedia)
-			postcards.DELETE("/:id/media/:media_id", controllers.DeleteMedia)
+		protectedPostcards := v1.Group("/postcards")
+		protectedPostcards.Use(middlewares.JWTAuthMiddlewares())
+		{
+			protectedPostcards.POST("", controllers.CreatePostcard)
+			protectedPostcards.PUT("/:id", controllers.UpdatePostcard)
+			protectedPostcards.DELETE("/:id", controllers.DeletePostcard)
+
+			protectedPostcards.POST("/:id/media", controllers.UploadMedia)
+			protectedPostcards.PUT("/:id/media/reorder", controllers.ReorderMedia)
+			protectedPostcards.DELETE("/:id/media/:media_id", controllers.DeleteMedia)
 		}
 	}
 

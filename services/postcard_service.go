@@ -3,6 +3,8 @@ package services
 import (
 	"encoding/json"
 	"errors"
+	"log"
+	"mime/multipart"
 	"strings"
 
 	"gorm.io/datatypes"
@@ -20,13 +22,16 @@ var allowedVisibility = map[string]bool{
 	"friends": true,
 }
 
-func (s *PostcardService) Create(userID uint, req *models.CreatePostcardRequest) (*models.Postcard, error) {
+func (s *PostcardService) Create(userID uint, req *models.CreatePostcardRequest, files []*multipart.FileHeader, mediaType, mediaGroup string) (*models.Postcard, error) {
 	visibility := normalizeVisibility(req.Visibility)
 	if visibility == "" {
 		visibility = "private"
 	}
 	if err := validateVisibility(visibility); err != nil {
 		return nil, err
+	}
+	if visibility == "friends" {
+		return nil, errors.New("friends 可见性暂不支持")
 	}
 	if !json.Valid(req.Content) {
 		return nil, errors.New("content 无效")
@@ -35,14 +40,33 @@ func (s *PostcardService) Create(userID uint, req *models.CreatePostcardRequest)
 	if title == "" {
 		return nil, errors.New("title 不能为空")
 	}
+
 	postcard := models.Postcard{
 		Title:      title,
 		Content:    datatypes.JSON(req.Content),
 		Visibility: visibility,
 		AuthorID:   userID,
 	}
-	if err := global.Db.Create(&postcard).Error; err != nil {
-		return nil, errors.New("创建明信片失败")
+	mediaService := MediaService{}
+	uploadedMedias := make([]models.PostcardMedia, 0, len(files))
+
+	err := global.Db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&postcard).Error; err != nil {
+			return errors.New("创建明信片失败")
+		}
+		for index, file := range files {
+			media, err := mediaService.processAndUploadWithDB(tx, file, postcard.ID, mediaType, mediaGroup, index+1)
+			if err != nil {
+				return err
+			}
+			uploadedMedias = append(uploadedMedias, *media)
+		}
+		postcard.Medias = append(postcard.Medias, uploadedMedias...)
+		return nil
+	})
+	if err != nil {
+		cleanupMediaObjects(uploadedMedias)
+		return nil, err
 	}
 	return &postcard, nil
 }
@@ -122,6 +146,9 @@ func (s *PostcardService) Update(userID, postcardID uint, req *models.UpdatePost
 		if err := validateVisibility(visibility); err != nil {
 			return err
 		}
+		if visibility == "friends" {
+			return errors.New("friends 可见性暂不支持")
+		}
 		updates["visibility"] = visibility
 	}
 	if len(updates) == 0 {
@@ -141,16 +168,16 @@ func (s *PostcardService) Delete(userID, postcardID uint) error {
 	if postcard.AuthorID != userID {
 		return errors.New("无权限操作该明信片")
 	}
-	for _, media := range postcard.Medias {
-		if err := deleteMediaObjects(media); err != nil {
-			return err
-		}
-	}
 	if err := global.Db.Where("postcard_id = ?", postcardID).Delete(&models.PostcardMedia{}).Error; err != nil {
 		return errors.New("删除媒体失败")
 	}
 	if err := global.Db.Delete(&models.Postcard{}, postcardID).Error; err != nil {
 		return errors.New("删除明信片失败")
+	}
+	for _, media := range postcard.Medias {
+		if err := deleteMediaObjects(media); err != nil {
+			log.Printf("Failed to delete postcard media object after db deletion, postcardID=%d mediaID=%d: %v", postcardID, media.ID, err)
+		}
 	}
 	return nil
 }
@@ -238,4 +265,10 @@ func validateVisibility(visibility string) error {
 		return errors.New("visibility 无效")
 	}
 	return nil
+}
+
+func cleanupMediaObjects(medias []models.PostcardMedia) {
+	for _, media := range medias {
+		_ = deleteMediaObjects(media)
+	}
 }
