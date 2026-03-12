@@ -30,6 +30,9 @@ func (s *PostcardService) Create(userID uint, req *models.CreatePostcardRequest,
 	if err := validateVisibility(visibility); err != nil {
 		return nil, err
 	}
+	if visibility == "friends" {
+		return nil, errors.New("friends 可见性暂不支持")
+	}
 	if !json.Valid(req.Content) {
 		return nil, errors.New("content 无效")
 	}
@@ -142,6 +145,9 @@ func (s *PostcardService) Update(userID, postcardID uint, req *models.UpdatePost
 		}
 		if err := validateVisibility(visibility); err != nil {
 			return err
+		}
+		if visibility == "friends" {
+			return errors.New("friends 可见性暂不支持")
 		}
 		updates["visibility"] = visibility
 	}
