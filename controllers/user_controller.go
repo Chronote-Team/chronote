@@ -73,6 +73,11 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
+// RefreshTokenRequest represents the refresh token request body
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
 func Login(ctx *gin.Context) {
 	var req LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -94,27 +99,16 @@ func Login(ctx *gin.Context) {
 }
 
 func RefreshToken(ctx *gin.Context) {
-	// Extract token from Authorization header
-	authHeader := ctx.GetHeader("Authorization")
-	if authHeader == "" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"code":    http.StatusUnauthorized,
-			"message": "缺少 Authorization 头",
+	var req RefreshTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"code":    http.StatusBadRequest,
+			"message": "请求参数无效，需要提供 refresh_token",
 		})
 		return
 	}
 
-	// Validate Bearer token format
-	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"code":    http.StatusUnauthorized,
-			"message": "Token 格式无效",
-		})
-		return
-	}
-
-	refreshTokenResponse, err := userService.RefreshToken(parts[1])
+	refreshTokenResponse, err := userService.RefreshToken(req.RefreshToken)
 	if err != nil {
 		log.Printf("Failed to refresh token: %v", err)
 		ctx.JSON(http.StatusUnauthorized, gin.H{
