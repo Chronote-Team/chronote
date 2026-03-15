@@ -27,6 +27,8 @@ func InitDB() {
 	}
 	err = db.AutoMigrate(
 		&models.User{},
+		&models.Postcard{},
+		&models.PostcardMedia{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to auto migrate database, %v", err)

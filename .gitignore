@@ -44,6 +44,7 @@ config.prod.yml
 ai_generated
 CLAUDE.md
 AGENTS.md
+AI_CONTENT.md
 .claude/
 
 # ignore Dev environment files

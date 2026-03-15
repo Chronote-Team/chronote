@@ -85,3 +85,44 @@ func JWTAuthMiddlewares() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func OptionalJWTAuthMiddlewares() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.Request.Header.Get("Authorization")
+		if authHeader == "" {
+			c.Next()
+			return
+		}
+
+		parts := strings.SplitN(authHeader, " ", 2)
+		if !(len(parts) == 2 && parts[0] == "Bearer") {
+			c.Next()
+			return
+		}
+		tokenString := parts[1]
+
+		blacklisted, err := isTokenBlacklisted(tokenString)
+		if err != nil {
+			c.Next()
+			return
+		}
+		if blacklisted {
+			c.Next()
+			return
+		}
+
+		claims, err := utils.Parsetoken(tokenString)
+		if err != nil {
+			c.Next()
+			return
+		}
+		if claims.TokenType != "access" {
+			c.Next()
+			return
+		}
+
+		c.Set("userID", claims.UserID)
+		c.Set("username", claims.Name)
+		c.Next()
+	}
+}
