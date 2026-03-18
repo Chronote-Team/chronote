@@ -1,6 +1,7 @@
 package services
 
 import (
+	"chronote/dto"
 	"encoding/json"
 	"errors"
 	"log"
@@ -23,7 +24,7 @@ var allowedVisibility = map[string]bool{
 
 const maxPostcardContentBytes = 64 * 1024
 
-func (s *PostcardService) Create(userID uint, req *models.CreatePostcardRequest, files []*multipart.FileHeader, mediaType, mediaGroup string) (*models.Postcard, error) {
+func (s *PostcardService) Create(userID uint, req *dto.CreatePostcardRequest, files []*multipart.FileHeader, mediaType, mediaGroup string) (*models.Postcard, error) {
 	if len(files) > maxMediaFilesPerRequest {
 		return nil, errors.New("单次最多上传 10 个媒体文件")
 	}
@@ -84,7 +85,7 @@ func (s *PostcardService) Create(userID uint, req *models.CreatePostcardRequest,
 	return &postcard, nil
 }
 
-func (s *PostcardService) List(userID uint, query models.PostcardListQuery) ([]models.Postcard, models.Pagination, error) {
+func (s *PostcardService) List(userID uint, query dto.PostcardListQuery) ([]models.Postcard, dto.Pagination, error) {
 	page, pageSize := normalizePagination(query.Page, query.PageSize)
 	sortBy, order := normalizeSort(query.SortBy, query.Order)
 	db := global.Db.Model(&models.Postcard{}).
@@ -96,22 +97,22 @@ func (s *PostcardService) List(userID uint, query models.PostcardListQuery) ([]m
 	if query.Visibility != "" {
 		visibility := normalizeVisibility(query.Visibility)
 		if err := validateVisibility(visibility); err != nil {
-			return nil, models.Pagination{}, err
+			return nil, dto.Pagination{}, err
 		}
 		db = db.Where("visibility = ?", visibility)
 	}
 	var total int64
 	if err := db.Session(&gorm.Session{}).Count(&total).Error; err != nil {
-		return nil, models.Pagination{}, errors.New("获取明信片列表失败")
+		return nil, dto.Pagination{}, errors.New("获取明信片列表失败")
 	}
 	var postcards []models.Postcard
 	if err := db.Order(sortBy + " " + order).
 		Limit(pageSize).
 		Offset((page - 1) * pageSize).
 		Find(&postcards).Error; err != nil {
-		return nil, models.Pagination{}, errors.New("获取明信片列表失败")
+		return nil, dto.Pagination{}, errors.New("获取明信片列表失败")
 	}
-	return postcards, models.Pagination{
+	return postcards, dto.Pagination{
 		Page:     page,
 		PageSize: pageSize,
 		Total:    total,
@@ -129,7 +130,7 @@ func (s *PostcardService) GetDetail(userID, postcardID uint) (*models.Postcard, 
 	return postcard, nil
 }
 
-func (s *PostcardService) Update(userID, postcardID uint, req *models.UpdatePostcardRequest) error {
+func (s *PostcardService) Update(userID, postcardID uint, req *dto.UpdatePostcardRequest) error {
 	postcard, err := s.getPostcardByID(postcardID)
 	if err != nil {
 		return err

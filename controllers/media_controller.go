@@ -1,12 +1,11 @@
 package controllers
 
 import (
+	"chronote/dto"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-
-	"chronote/models"
 )
 
 func UploadMedia(ctx *gin.Context) {
@@ -68,7 +67,7 @@ func UploadMedia(ctx *gin.Context) {
 		"code":    http.StatusOK,
 		"message": "媒体上传成功",
 		"data": gin.H{
-			"medias": medias,
+			"medias": dto.NewMediaResponses(medias),
 		},
 	})
 }
@@ -102,7 +101,7 @@ func GetMedias(ctx *gin.Context) {
 		"code":    http.StatusOK,
 		"message": "获取媒体列表成功",
 		"data": gin.H{
-			"medias": postcard.Medias,
+			"medias": dto.NewMediaResponses(postcard.Medias),
 		},
 	})
 }
@@ -132,7 +131,7 @@ func ReorderMedia(ctx *gin.Context) {
 		})
 		return
 	}
-	var req models.ReorderMediaRequest
+	var req dto.ReorderMediaRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,

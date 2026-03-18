@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"chronote/models"
+	"chronote/dto"
 	"chronote/services"
 	"context"
 	"log"
@@ -15,7 +15,7 @@ var userService = services.UserService{}
 var tokenBlacklistService = services.TokenBlacklistService{}
 
 func Register(ctx *gin.Context) {
-	var req models.RegisterRequest
+	var req dto.RegisterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"code": http.StatusBadRequest, "message": "请求参数无效"})
 		return
@@ -44,12 +44,7 @@ func Register(ctx *gin.Context) {
 		"code":    http.StatusCreated,
 		"message": "用户注册成功",
 		"data": gin.H{
-			"user": gin.H{
-				"id":           user.ID,
-				"username":     user.Username,
-				"display_name": user.DisplayName,
-				"email":        user.Email,
-			},
+			"user": dto.NewRegisterUserResponse(user),
 		},
 	},
 	)
@@ -83,7 +78,7 @@ func UserInfo(ctx *gin.Context) {
 }
 
 func Login(ctx *gin.Context) {
-	var req models.LoginRequest
+	var req dto.LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"code": http.StatusBadRequest, "message": "请求参数无效"})
 		return
@@ -103,7 +98,7 @@ func Login(ctx *gin.Context) {
 }
 
 func RefreshToken(ctx *gin.Context) {
-	var req models.RefreshTokenRequest
+	var req dto.RefreshTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -155,7 +150,7 @@ func Logout(ctx *gin.Context) {
 	accessToken := parts[1]
 
 	// Get refresh token from request body
-	var req models.LogoutRequest
+	var req dto.LogoutRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -242,9 +237,7 @@ func UploadAvatar(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    http.StatusOK,
 		"message": "头像上传成功",
-		"data": gin.H{
-			"avatar_url": avatarURL,
-		},
+		"data":    dto.AvatarUploadResponse{AvatarURL: avatarURL},
 	})
 }
 
@@ -258,7 +251,7 @@ func UpdateDisplayName(ctx *gin.Context) {
 		return
 	}
 
-	var req models.UpdateDisplayNameRequest
+	var req dto.UpdateDisplayNameRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -298,7 +291,7 @@ func UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
-	var req models.UpdatePasswordRequest
+	var req dto.UpdatePasswordRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,

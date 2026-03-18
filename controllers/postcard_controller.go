@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"chronote/dto"
 	"encoding/json"
 	"log"
 	"mime/multipart"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"chronote/models"
 	"chronote/services"
 )
 
@@ -28,7 +28,7 @@ var mediaService = services.MediaService{}
 // @Param content formData string false "内容JSON"
 // @Param visibility formData string false "可见性"
 // @Param media formData file false "媒体文件"
-// @Param body body models.CreatePostcardRequest false "创建明信片请求"
+// @Param body body dto.CreatePostcardRequest false "创建明信片请求"
 // @Success 201 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 401 {object} map[string]interface{}
@@ -39,7 +39,7 @@ func CreatePostcard(ctx *gin.Context) {
 		return
 	}
 
-	var req models.CreatePostcardRequest
+	var req dto.CreatePostcardRequest
 	isMultipart := strings.HasPrefix(ctx.ContentType(), "multipart/")
 	if isMultipart {
 		title := strings.TrimSpace(ctx.PostForm("title"))
@@ -51,7 +51,7 @@ func CreatePostcard(ctx *gin.Context) {
 			})
 			return
 		}
-		req = models.CreatePostcardRequest{
+		req = dto.CreatePostcardRequest{
 			Title:      title,
 			Content:    json.RawMessage(content),
 			Visibility: ctx.PostForm("visibility"),
@@ -107,7 +107,7 @@ func CreatePostcard(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{
 		"code":    http.StatusCreated,
 		"message": "明信片创建成功",
-		"data":    buildPostcardResponse(detail),
+		"data":    dto.NewPostcardResponse(detail),
 	})
 }
 
@@ -125,7 +125,7 @@ func CreatePostcard(ctx *gin.Context) {
 // @Router /v1/postcards [get]
 func GetPostcards(ctx *gin.Context) {
 	userID := getOptionalUserID(ctx)
-	var query models.PostcardListQuery
+	var query dto.PostcardListQuery
 	if err := ctx.ShouldBindQuery(&query); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -142,9 +142,9 @@ func GetPostcards(ctx *gin.Context) {
 		})
 		return
 	}
-	responses := make([]models.PostcardResponse, 0, len(postcards))
+	responses := make([]dto.PostcardResponse, 0, len(postcards))
 	for i := range postcards {
-		responses = append(responses, buildPostcardResponse(&postcards[i]))
+		responses = append(responses, dto.NewPostcardResponse(&postcards[i]))
 	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    http.StatusOK,
@@ -192,7 +192,7 @@ func GetPostcardDetail(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    http.StatusOK,
 		"message": "获取明信片详情成功",
-		"data":    buildPostcardResponse(postcard),
+		"data":    dto.NewPostcardResponse(postcard),
 	})
 }
 
@@ -203,7 +203,7 @@ func GetPostcardDetail(ctx *gin.Context) {
 // @Produce json
 // @Security BearerAuth
 // @Param id path int true "明信片ID"
-// @Param body body models.UpdatePostcardRequest true "更新明信片请求"
+// @Param body body dto.UpdatePostcardRequest true "更新明信片请求"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Failure 403 {object} map[string]interface{}
@@ -222,7 +222,7 @@ func UpdatePostcard(ctx *gin.Context) {
 		})
 		return
 	}
-	var req models.UpdatePostcardRequest
+	var req dto.UpdatePostcardRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -296,29 +296,6 @@ func DeletePostcard(ctx *gin.Context) {
 		"code":    http.StatusOK,
 		"message": "明信片删除成功",
 	})
-}
-
-func buildPostcardResponse(postcard *models.Postcard) models.PostcardResponse {
-	var author *models.PostcardAuthorResponse
-	if postcard.Author != nil {
-		author = &models.PostcardAuthorResponse{
-			ID:          postcard.Author.ID,
-			Username:    postcard.Author.Username,
-			DisplayName: postcard.Author.DisplayName,
-			Avatar:      postcard.Author.Avatar,
-		}
-	}
-	return models.PostcardResponse{
-		ID:         postcard.ID,
-		Title:      postcard.Title,
-		Content:    postcard.Content,
-		Visibility: postcard.Visibility,
-		AuthorID:   postcard.AuthorID,
-		Author:     author,
-		Medias:     postcard.Medias,
-		CreatedAt:  postcard.CreatedAt.Format("2006-01-02 15:04:05"),
-		UpdatedAt:  postcard.UpdatedAt.Format("2006-01-02 15:04:05"),
-	}
 }
 
 func getUserID(ctx *gin.Context) (uint, bool) {

@@ -2,6 +2,7 @@ package services
 
 import (
 	"chronote/config"
+	"chronote/dto"
 	"chronote/global"
 	"chronote/models"
 	"chronote/utils"
@@ -24,7 +25,7 @@ const (
 	maxEmailLength       = 255
 )
 
-func (s *UserService) Register(req *models.RegisterRequest) (*models.User, error) {
+func (s *UserService) Register(req *dto.RegisterRequest) (*models.User, error) {
 	username := strings.TrimSpace(req.Username)
 	displayName := strings.TrimSpace(req.DisplayName)
 	email := strings.ToLower(strings.TrimSpace(req.Email))
@@ -88,40 +89,18 @@ func (s *UserService) Register(req *models.RegisterRequest) (*models.User, error
 	return user, nil
 }
 
-type LoginResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`
-}
-
-// UserInfoResponse represents the response structure for user info
-type UserInfoResponse struct {
-	ID          uint   `json:"id"`
-	Username    string `json:"username"`
-	DisplayName string `json:"display_name"`
-	Email       string `json:"email"`
-	Avatar      string `json:"avatar,omitempty"`
-	CreatedAt   string `json:"created_at"`
-}
-
 // GetUserInfo retrieves user information by user ID
-func (s *UserService) GetUserInfo(userID uint) (*UserInfoResponse, error) {
+func (s *UserService) GetUserInfo(userID uint) (*dto.UserInfoResponse, error) {
 	var user models.User
 	if err := global.Db.First(&user, userID).Error; err != nil {
 		return nil, errors.New("用户不存在")
 	}
 
-	return &UserInfoResponse{
-		ID:          user.ID,
-		Username:    user.Username,
-		DisplayName: user.DisplayName,
-		Email:       user.Email,
-		Avatar:      user.Avatar,
-		CreatedAt:   user.CreatedAt.Format("2006-01-02 15:04:05"),
-	}, nil
+	response := dto.NewUserInfoResponse(&user)
+	return &response, nil
 }
 
-func (s *UserService) Login(email, password string) (*LoginResponse, error) {
+func (s *UserService) Login(email, password string) (*dto.AuthTokenResponse, error) {
 	var user models.User
 	email = strings.ToLower(strings.TrimSpace(email))
 
@@ -142,19 +121,12 @@ func (s *UserService) Login(email, password string) (*LoginResponse, error) {
 	expiresInSeconds := config.AppConfig.JWT.AccessTokenExpire
 
 	// Generate Login Response
-	loginResponse := &LoginResponse{
+	loginResponse := &dto.AuthTokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    expiresInSeconds,
 	}
 	return loginResponse, nil
-}
-
-// RefreshTokenResponse represents the response structure for token refresh
-type RefreshTokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`
 }
 
 // isTokenBlacklisted checks if a token is in the Redis blacklist
@@ -164,7 +136,7 @@ func isTokenBlacklisted(token string) (bool, error) {
 }
 
 // RefreshToken validates refresh token and generates new token pair
-func (s *UserService) RefreshToken(refreshTokenString string) (*RefreshTokenResponse, error) {
+func (s *UserService) RefreshToken(refreshTokenString string) (*dto.AuthTokenResponse, error) {
 	refreshTokenString = strings.TrimSpace(refreshTokenString)
 	if refreshTokenString == "" {
 		return nil, errors.New("refresh_token 不能为空")
@@ -202,7 +174,7 @@ func (s *UserService) RefreshToken(refreshTokenString string) (*RefreshTokenResp
 		return nil, errors.New("token 生成失败")
 	}
 
-	return &RefreshTokenResponse{
+	return &dto.AuthTokenResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresIn:    config.AppConfig.JWT.AccessTokenExpire,
