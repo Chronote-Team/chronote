@@ -28,6 +28,11 @@ var allowedMediaGroups = map[string]bool{
 	"bgm":     true,
 }
 
+const (
+	maxMediaFilesPerRequest = 10
+	maxMediasPerPostcard    = 20
+)
+
 func (s *MediaService) ProcessAndUpload(file *multipart.FileHeader, postcardID uint, mediaType, mediaGroup string) (*models.PostcardMedia, error) {
 	return s.processAndUploadWithDB(global.Db, file, postcardID, mediaType, mediaGroup, 0)
 }
@@ -36,11 +41,50 @@ func (s *MediaService) BatchProcessAndUpload(postcardID uint, files []*multipart
 	if len(files) == 0 {
 		return nil, errors.New("请上传媒体文件")
 	}
+	if len(files) > maxMediaFilesPerRequest {
+		return nil, errors.New("单次最多上传 10 个媒体文件")
+	}
+
+	mediaGroup = normalizeMediaGroup(mediaGroup)
+	if mediaGroup == "" {
+		mediaGroup = "gallery"
+	}
+	if !allowedMediaGroups[mediaGroup] {
+		return nil, errors.New("媒体分组无效")
+	}
+	if mediaGroup == "header" && len(files) > 1 {
+		return nil, errors.New("header 分组一次只能上传 1 个文件")
+	}
+	if mediaGroup == "bgm" && len(files) > 1 {
+		return nil, errors.New("bgm 分组一次只能上传 1 个文件")
+	}
 
 	uploadedMedias := make([]models.PostcardMedia, 0, len(files))
 	cleanupDone := false
 
 	err := global.Db.Transaction(func(tx *gorm.DB) error {
+		var existingTotal int64
+		if err := tx.Model(&models.PostcardMedia{}).
+			Where("postcard_id = ?", postcardID).
+			Count(&existingTotal).Error; err != nil {
+			return errors.New("获取媒体失败")
+		}
+		if existingTotal+int64(len(files)) > maxMediasPerPostcard {
+			return errors.New("单张明信片最多允许 20 个媒体文件")
+		}
+
+		if mediaGroup == "header" || mediaGroup == "bgm" {
+			var groupCount int64
+			if err := tx.Model(&models.PostcardMedia{}).
+				Where("postcard_id = ? AND media_group = ?", postcardID, mediaGroup).
+				Count(&groupCount).Error; err != nil {
+				return errors.New("获取媒体失败")
+			}
+			if groupCount > 0 {
+				return fmt.Errorf("%s 分组仅允许 1 个媒体文件", mediaGroup)
+			}
+		}
+
 		startPosition, err := s.nextPositionWithDB(tx, postcardID)
 		if err != nil {
 			return errors.New("获取媒体排序失败")
@@ -125,6 +169,9 @@ func (s *MediaService) uploadMediaFile(file *multipart.FileHeader, postcardID ui
 	}
 	if !allowedMediaGroups[mediaGroup] {
 		return nil, errors.New("媒体分组无效")
+	}
+	if err := validateMediaGroupCompatibility(mediaType, mediaGroup); err != nil {
+		return nil, err
 	}
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
@@ -253,6 +300,20 @@ func (s *MediaService) nextPositionWithDB(db *gorm.DB, postcardID uint) (int, er
 
 func normalizeMediaGroup(mediaGroup string) string {
 	return strings.ToLower(strings.TrimSpace(mediaGroup))
+}
+
+func validateMediaGroupCompatibility(mediaType, mediaGroup string) error {
+	switch mediaGroup {
+	case "header":
+		if mediaType != "image" {
+			return errors.New("header 分组仅支持图片")
+		}
+	case "bgm":
+		if mediaType != "audio" {
+			return errors.New("bgm 分组仅支持音频")
+		}
+	}
+	return nil
 }
 
 func readFileData(file *multipart.FileHeader, maxSize int64) ([]byte, error) {

@@ -19,10 +19,25 @@ type PostcardService struct{}
 var allowedVisibility = map[string]bool{
 	"public":  true,
 	"private": true,
-	"friends": true,
 }
 
+const maxPostcardContentBytes = 64 * 1024
+
 func (s *PostcardService) Create(userID uint, req *models.CreatePostcardRequest, files []*multipart.FileHeader, mediaType, mediaGroup string) (*models.Postcard, error) {
+	if len(files) > maxMediaFilesPerRequest {
+		return nil, errors.New("单次最多上传 10 个媒体文件")
+	}
+	if len(files) > maxMediasPerPostcard {
+		return nil, errors.New("单张明信片最多允许 20 个媒体文件")
+	}
+	normalizedGroup := normalizeMediaGroup(mediaGroup)
+	if normalizedGroup == "" {
+		normalizedGroup = "gallery"
+	}
+	if (normalizedGroup == "header" || normalizedGroup == "bgm") && len(files) > 1 {
+		return nil, errors.New(normalizedGroup + " 分组一次只能上传 1 个文件")
+	}
+
 	visibility := normalizeVisibility(req.Visibility)
 	if visibility == "" {
 		visibility = "private"
@@ -30,27 +45,25 @@ func (s *PostcardService) Create(userID uint, req *models.CreatePostcardRequest,
 	if err := validateVisibility(visibility); err != nil {
 		return nil, err
 	}
-	if visibility == "friends" {
-		return nil, errors.New("friends 可见性暂不支持")
+	title, err := validatePostcardTitle(req.Title)
+	if err != nil {
+		return nil, err
 	}
-	if !json.Valid(req.Content) {
-		return nil, errors.New("content 无效")
-	}
-	title := strings.TrimSpace(req.Title)
-	if title == "" {
-		return nil, errors.New("title 不能为空")
+	content, err := validatePostcardContent(req.Content)
+	if err != nil {
+		return nil, err
 	}
 
 	postcard := models.Postcard{
 		Title:      title,
-		Content:    datatypes.JSON(req.Content),
+		Content:    content,
 		Visibility: visibility,
 		AuthorID:   userID,
 	}
 	mediaService := MediaService{}
 	uploadedMedias := make([]models.PostcardMedia, 0, len(files))
 
-	err := global.Db.Transaction(func(tx *gorm.DB) error {
+	err = global.Db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(&postcard).Error; err != nil {
 			return errors.New("创建明信片失败")
 		}
@@ -133,10 +146,11 @@ func (s *PostcardService) Update(userID, postcardID uint, req *models.UpdatePost
 		updates["title"] = title
 	}
 	if req.Content != nil {
-		if !json.Valid(*req.Content) {
-			return errors.New("content 无效")
+		content, err := validatePostcardContent(*req.Content)
+		if err != nil {
+			return err
 		}
-		updates["content"] = datatypes.JSON(*req.Content)
+		updates["content"] = content
 	}
 	if req.Visibility != nil {
 		visibility := normalizeVisibility(*req.Visibility)
@@ -145,9 +159,6 @@ func (s *PostcardService) Update(userID, postcardID uint, req *models.UpdatePost
 		}
 		if err := validateVisibility(visibility); err != nil {
 			return err
-		}
-		if visibility == "friends" {
-			return errors.New("friends 可见性暂不支持")
 		}
 		updates["visibility"] = visibility
 	}
@@ -218,8 +229,6 @@ func canAccessPostcard(userID, authorID uint, visibility string) bool {
 	switch visibility {
 	case "public":
 		return true
-	case "friends":
-		return false
 	default:
 		return false
 	}
@@ -265,6 +274,40 @@ func validateVisibility(visibility string) error {
 		return errors.New("visibility 无效")
 	}
 	return nil
+}
+
+func validatePostcardTitle(title string) (string, error) {
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return "", errors.New("title 不能为空")
+	}
+	if len(title) > 200 {
+		return "", errors.New("title 长度不能超过 200 个字符")
+	}
+	return title, nil
+}
+
+func validatePostcardContent(content json.RawMessage) (datatypes.JSON, error) {
+	if len(content) == 0 {
+		return nil, errors.New("content 不能为空")
+	}
+	if len(content) > maxPostcardContentBytes {
+		return nil, errors.New("content 长度不能超过 65536 字节")
+	}
+	if !json.Valid(content) {
+		return nil, errors.New("content 无效")
+	}
+
+	var decoded interface{}
+	if err := json.Unmarshal(content, &decoded); err != nil {
+		return nil, errors.New("content 无效")
+	}
+	switch decoded.(type) {
+	case map[string]interface{}, []interface{}:
+		return datatypes.JSON(content), nil
+	default:
+		return nil, errors.New("content 必须是 JSON 对象或数组")
+	}
 }
 
 func cleanupMediaObjects(medias []models.PostcardMedia) {

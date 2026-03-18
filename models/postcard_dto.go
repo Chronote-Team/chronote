@@ -7,9 +7,9 @@ import (
 )
 
 type CreatePostcardRequest struct {
-	Title      string          `json:"title" binding:"required"`
+	Title      string          `json:"title" binding:"required,max=200"`
 	Content    json.RawMessage `json:"content" binding:"required"`
-	Visibility string          `json:"visibility"`
+	Visibility string          `json:"visibility" binding:"omitempty,oneof=public private"`
 }
 
 type UpdatePostcardRequest struct {
@@ -19,9 +19,9 @@ type UpdatePostcardRequest struct {
 }
 
 type PostcardListQuery struct {
-	Page       int    `form:"page"`
-	PageSize   int    `form:"page_size"`
-	Visibility string `form:"visibility"`
+	Page       int    `form:"page" binding:"omitempty,min=1"`
+	PageSize   int    `form:"page_size" binding:"omitempty,min=1,max=50"`
+	Visibility string `form:"visibility" binding:"omitempty,oneof=public private"`
 	SortBy     string `form:"sort_by"`
 	Order      string `form:"order"`
 }
@@ -33,7 +33,7 @@ type Pagination struct {
 }
 
 type ReorderMediaRequest struct {
-	MediaIDs []uint `json:"media_ids" binding:"required"`
+	MediaIDs []uint `json:"media_ids" binding:"required,min=1,max=100"`
 }
 
 type PostcardAuthorResponse struct {

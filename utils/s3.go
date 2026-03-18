@@ -1,11 +1,14 @@
 package utils
 
 import (
+	"bytes"
 	"chronote/config"
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
-	"path/filepath"
+	"net/http"
 	"strings"
 	"time"
 
@@ -16,49 +19,62 @@ import (
 // UploadAvatar uploads an avatar file to S3 and returns the file URL
 func UploadAvatar(file *multipart.FileHeader, userID uint) (string, error) {
 	cfg := config.AppConfig.S3
+	if file == nil {
+		return "", errors.New("头像文件不能为空")
+	}
+
+	// Validate file size (2MB = 2 * 1024 * 1024 bytes)
+	const maxFileSize = 2 * 1024 * 1024
+	if file.Size <= 0 {
+		return "", errors.New("头像文件不能为空")
+	}
+	if file.Size > maxFileSize {
+		return "", errors.New("头像文件大小超出限制")
+	}
 
 	// Open the uploaded file
 	src, err := file.Open()
 	if err != nil {
-		return "", fmt.Errorf("failed to open file: %w", err)
+		return "", errors.New("读取头像文件失败")
 	}
 	defer src.Close()
 
-	// Validate file size (2MB = 2 * 1024 * 1024 bytes)
-	const maxFileSize = 2 * 1024 * 1024
-	if file.Size > maxFileSize {
-		return "", fmt.Errorf("file size exceeds 2MB limit")
+	data, err := io.ReadAll(io.LimitReader(src, maxFileSize+1))
+	if err != nil {
+		return "", errors.New("读取头像文件失败")
+	}
+	if len(data) == 0 {
+		return "", errors.New("头像文件不能为空")
+	}
+	if int64(len(data)) > maxFileSize {
+		return "", errors.New("头像文件大小超出限制")
 	}
 
-	// Validate file extension
-	ext := strings.ToLower(filepath.Ext(file.Filename))
-	allowedExtensions := map[string]bool{
-		".jpg":  true,
-		".jpeg": true,
-		".png":  true,
-		".gif":  true,
-		".webp": true,
+	contentType := strings.ToLower(http.DetectContentType(data))
+	allowedContentTypes := map[string]string{
+		"image/jpeg": ".jpg",
+		"image/png":  ".png",
+		"image/gif":  ".gif",
+		"image/webp": ".webp",
 	}
-	if !allowedExtensions[ext] {
-		return "", fmt.Errorf("invalid file type: only jpg, jpeg, png, gif, webp are allowed")
+	ext, ok := allowedContentTypes[contentType]
+	if !ok {
+		return "", errors.New("头像文件类型无效")
 	}
 
 	// Generate object key: avatars/{userID}/{timestamp}.{ext}
 	timestamp := time.Now().Unix()
 	objectKey := fmt.Sprintf("avatars/%d/%d%s", userID, timestamp, ext)
 
-	// Determine content type
-	contentType := getContentType(ext)
-
 	// Upload to S3
 	_, err = config.S3Client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(cfg.BucketName),
 		Key:         aws.String(objectKey),
-		Body:        src,
+		Body:        bytes.NewReader(data),
 		ContentType: aws.String(contentType),
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to upload to S3: %w", err)
+		return "", errors.New("上传头像失败")
 	}
 
 	// Generate file URL
@@ -97,19 +113,4 @@ func DeleteAvatar(avatarURL string) error {
 	}
 
 	return nil
-}
-
-// getContentType returns the MIME type for a given file extension
-func getContentType(ext string) string {
-	contentTypes := map[string]string{
-		".jpg":  "image/jpeg",
-		".jpeg": "image/jpeg",
-		".png":  "image/png",
-		".gif":  "image/gif",
-		".webp": "image/webp",
-	}
-	if ct, ok := contentTypes[ext]; ok {
-		return ct
-	}
-	return "application/octet-stream"
 }

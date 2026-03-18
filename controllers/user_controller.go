@@ -15,14 +15,29 @@ var userService = services.UserService{}
 var tokenBlacklistService = services.TokenBlacklistService{}
 
 func Register(ctx *gin.Context) {
-	var user models.User
-	if err := ctx.ShouldBindJSON(&user); err != nil {
+	var req models.RegisterRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"code": http.StatusBadRequest, "message": "请求参数无效"})
 		return
 	}
-	if err := userService.Register(&user); err != nil {
+	user, err := userService.Register(&req)
+	if err != nil {
 		log.Printf("Failed to register user: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"code": http.StatusInternalServerError, "message": "用户注册失败"})
+		status := http.StatusInternalServerError
+		switch err.Error() {
+		case "username 不能为空",
+			"username 长度不能超过 50 个字符",
+			"username 只能包含字母、数字和下划线",
+			"display_name 长度不能超过 100 个字符",
+			"email 不能为空",
+			"email 长度不能超过 255 个字符",
+			"password 不能为空",
+			"password 长度必须在 6 到 72 个字符之间":
+			status = http.StatusBadRequest
+		case "username 已存在", "email 已被使用":
+			status = http.StatusConflict
+		}
+		ctx.JSON(status, gin.H{"code": status, "message": err.Error()})
 		return
 	}
 	ctx.JSON(http.StatusCreated, gin.H{
@@ -67,19 +82,8 @@ func UserInfo(ctx *gin.Context) {
 	})
 }
 
-// LoginRequest represents the login request body
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=6"`
-}
-
-// RefreshTokenRequest represents the refresh token request body
-type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
-}
-
 func Login(ctx *gin.Context) {
-	var req LoginRequest
+	var req models.LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"code": http.StatusBadRequest, "message": "请求参数无效"})
 		return
@@ -99,7 +103,7 @@ func Login(ctx *gin.Context) {
 }
 
 func RefreshToken(ctx *gin.Context) {
-	var req RefreshTokenRequest
+	var req models.RefreshTokenRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -111,8 +115,12 @@ func RefreshToken(ctx *gin.Context) {
 	refreshTokenResponse, err := userService.RefreshToken(req.RefreshToken)
 	if err != nil {
 		log.Printf("Failed to refresh token: %v", err)
-		ctx.JSON(http.StatusUnauthorized, gin.H{
-			"code":    http.StatusUnauthorized,
+		status := http.StatusUnauthorized
+		if err.Error() == "refresh_token 不能为空" {
+			status = http.StatusBadRequest
+		}
+		ctx.JSON(status, gin.H{
+			"code":    status,
 			"message": err.Error(),
 		})
 		return
@@ -123,11 +131,6 @@ func RefreshToken(ctx *gin.Context) {
 		"message": "Token 刷新成功",
 		"data":    refreshTokenResponse,
 	})
-}
-
-// LogoutRequest represents the logout request body
-type LogoutRequest struct {
-	RefreshToken string `json:"refresh_token" binding:"required"`
 }
 
 func Logout(ctx *gin.Context) {
@@ -152,7 +155,7 @@ func Logout(ctx *gin.Context) {
 	accessToken := parts[1]
 
 	// Get refresh token from request body
-	var req LogoutRequest
+	var req models.LogoutRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -160,6 +163,26 @@ func Logout(ctx *gin.Context) {
 		})
 		return
 	}
+	userID, ok := ctx.Get("userID")
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"code":    http.StatusUnauthorized,
+			"message": "未授权访问",
+		})
+		return
+	}
+	if err := userService.ValidateRefreshTokenForUser(userID.(uint), req.RefreshToken); err != nil {
+		status := http.StatusUnauthorized
+		if err.Error() == "refresh_token 不能为空" {
+			status = http.StatusBadRequest
+		}
+		ctx.JSON(status, gin.H{
+			"code":    status,
+			"message": err.Error(),
+		})
+		return
+	}
+	req.RefreshToken = strings.TrimSpace(req.RefreshToken)
 
 	// Add both tokens to blacklist
 	if err := tokenBlacklistService.BlacklistTokenPair(context.Background(), accessToken, req.RefreshToken); err != nil {
@@ -202,8 +225,15 @@ func UploadAvatar(ctx *gin.Context) {
 	avatarURL, err := userService.UpdateAvatar(userID.(uint), file)
 	if err != nil {
 		log.Printf("Failed to upload avatar: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"code":    http.StatusInternalServerError,
+		status := http.StatusInternalServerError
+		switch err.Error() {
+		case "用户不存在":
+			status = http.StatusNotFound
+		case "头像文件不能为空", "头像文件大小超出限制", "头像文件类型无效", "读取头像文件失败":
+			status = http.StatusBadRequest
+		}
+		ctx.JSON(status, gin.H{
+			"code":    status,
 			"message": err.Error(),
 		})
 		return
@@ -218,11 +248,6 @@ func UploadAvatar(ctx *gin.Context) {
 	})
 }
 
-// UpdateDisplayNameRequest represents the request for updating display name
-type UpdateDisplayNameRequest struct {
-	DisplayName string `json:"display_name" binding:"required"`
-}
-
 func UpdateDisplayName(ctx *gin.Context) {
 	userID, exists := ctx.Get("userID")
 	if !exists {
@@ -233,7 +258,7 @@ func UpdateDisplayName(ctx *gin.Context) {
 		return
 	}
 
-	var req UpdateDisplayNameRequest
+	var req models.UpdateDisplayNameRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,
@@ -244,8 +269,14 @@ func UpdateDisplayName(ctx *gin.Context) {
 
 	if err := userService.UpdateDisplayName(userID.(uint), req.DisplayName); err != nil {
 		log.Printf("Failed to update display name: %v", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"code":    http.StatusInternalServerError,
+		status := http.StatusInternalServerError
+		if err.Error() == "display_name 不能为空" || err.Error() == "display_name 长度不能超过 100 个字符" {
+			status = http.StatusBadRequest
+		} else if err.Error() == "用户不存在" {
+			status = http.StatusNotFound
+		}
+		ctx.JSON(status, gin.H{
+			"code":    status,
 			"message": err.Error(),
 		})
 		return
@@ -255,12 +286,6 @@ func UpdateDisplayName(ctx *gin.Context) {
 		"code":    http.StatusOK,
 		"message": "显示名称更新成功",
 	})
-}
-
-// UpdatePasswordRequest represents the request for updating password
-type UpdatePasswordRequest struct {
-	OldPassword string `json:"old_password" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
 
 func UpdatePassword(ctx *gin.Context) {
@@ -273,7 +298,7 @@ func UpdatePassword(ctx *gin.Context) {
 		return
 	}
 
-	var req UpdatePasswordRequest
+	var req models.UpdatePasswordRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
 			"code":    http.StatusBadRequest,

@@ -8,24 +8,84 @@ import (
 	"context"
 	"errors"
 	"mime/multipart"
+	"regexp"
+	"strings"
 )
 
 type UserService struct{}
 
-func (s *UserService) Register(user *models.User) error {
-	// 如果 display_name 为空，默认使用 username
-	if user.DisplayName == "" {
-		user.DisplayName = user.Username
+var usernamePattern = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
+
+const (
+	minPasswordLength    = 6
+	maxPasswordLength    = 72
+	maxUsernameLength    = 50
+	maxDisplayNameLength = 100
+	maxEmailLength       = 255
+)
+
+func (s *UserService) Register(req *models.RegisterRequest) (*models.User, error) {
+	username := strings.TrimSpace(req.Username)
+	displayName := strings.TrimSpace(req.DisplayName)
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	password := req.Password
+
+	if username == "" {
+		return nil, errors.New("username 不能为空")
 	}
-	hashedPassword, err := utils.EncryptPassword(user.Password)
+	if len(username) > maxUsernameLength {
+		return nil, errors.New("username 长度不能超过 50 个字符")
+	}
+	if !usernamePattern.MatchString(username) {
+		return nil, errors.New("username 只能包含字母、数字和下划线")
+	}
+	if displayName != "" && len(displayName) > maxDisplayNameLength {
+		return nil, errors.New("display_name 长度不能超过 100 个字符")
+	}
+	if email == "" {
+		return nil, errors.New("email 不能为空")
+	}
+	if len(email) > maxEmailLength {
+		return nil, errors.New("email 长度不能超过 255 个字符")
+	}
+	if strings.TrimSpace(password) == "" {
+		return nil, errors.New("password 不能为空")
+	}
+	if len(password) < minPasswordLength || len(password) > maxPasswordLength {
+		return nil, errors.New("password 长度必须在 6 到 72 个字符之间")
+	}
+	if displayName == "" {
+		displayName = username
+	}
+
+	var count int64
+	if err := global.Db.Model(&models.User{}).Where("username = ?", username).Count(&count).Error; err != nil {
+		return nil, errors.New("用户注册失败")
+	}
+	if count > 0 {
+		return nil, errors.New("username 已存在")
+	}
+	if err := global.Db.Model(&models.User{}).Where("email = ?", email).Count(&count).Error; err != nil {
+		return nil, errors.New("用户注册失败")
+	}
+	if count > 0 {
+		return nil, errors.New("email 已被使用")
+	}
+
+	hashedPassword, err := utils.EncryptPassword(password)
 	if err != nil {
-		return err
+		return nil, errors.New("密码加密失败")
 	}
-	user.Password = hashedPassword
+	user := &models.User{
+		Username:    username,
+		DisplayName: displayName,
+		Email:       email,
+		Password:    hashedPassword,
+	}
 	if err := global.Db.Create(user).Error; err != nil {
-		return err
+		return nil, errors.New("用户注册失败")
 	}
-	return nil
+	return user, nil
 }
 
 type LoginResponse struct {
@@ -36,12 +96,12 @@ type LoginResponse struct {
 
 // UserInfoResponse represents the response structure for user info
 type UserInfoResponse struct {
-	ID         uint   `json:"id"`
-	Username   string `json:"username"`
+	ID          uint   `json:"id"`
+	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
-	Email      string `json:"email"`
-	Avatar     string `json:"avatar,omitempty"`
-	CreatedAt  string `json:"created_at"`
+	Email       string `json:"email"`
+	Avatar      string `json:"avatar,omitempty"`
+	CreatedAt   string `json:"created_at"`
 }
 
 // GetUserInfo retrieves user information by user ID
@@ -52,17 +112,18 @@ func (s *UserService) GetUserInfo(userID uint) (*UserInfoResponse, error) {
 	}
 
 	return &UserInfoResponse{
-		ID:         user.ID,
-		Username:   user.Username,
+		ID:          user.ID,
+		Username:    user.Username,
 		DisplayName: user.DisplayName,
-		Email:      user.Email,
-		Avatar:     user.Avatar,
-		CreatedAt:  user.CreatedAt.Format("2006-01-02 15:04:05"),
+		Email:       user.Email,
+		Avatar:      user.Avatar,
+		CreatedAt:   user.CreatedAt.Format("2006-01-02 15:04:05"),
 	}, nil
 }
 
 func (s *UserService) Login(email, password string) (*LoginResponse, error) {
 	var user models.User
+	email = strings.ToLower(strings.TrimSpace(email))
 
 	// Verify User Email and Password
 	if err := global.Db.Where("email = ?", email).First(&user).Error; err != nil {
@@ -104,6 +165,11 @@ func isTokenBlacklisted(token string) (bool, error) {
 
 // RefreshToken validates refresh token and generates new token pair
 func (s *UserService) RefreshToken(refreshTokenString string) (*RefreshTokenResponse, error) {
+	refreshTokenString = strings.TrimSpace(refreshTokenString)
+	if refreshTokenString == "" {
+		return nil, errors.New("refresh_token 不能为空")
+	}
+
 	// Check if refresh token is blacklisted
 	blacklisted, err := isTokenBlacklisted(refreshTokenString)
 	if err != nil {
@@ -143,6 +209,25 @@ func (s *UserService) RefreshToken(refreshTokenString string) (*RefreshTokenResp
 	}, nil
 }
 
+func (s *UserService) ValidateRefreshTokenForUser(userID uint, refreshTokenString string) error {
+	refreshTokenString = strings.TrimSpace(refreshTokenString)
+	if refreshTokenString == "" {
+		return errors.New("refresh_token 不能为空")
+	}
+
+	claims, err := utils.Parsetoken(refreshTokenString)
+	if err != nil {
+		return errors.New("refresh token 无效或已过期")
+	}
+	if claims.TokenType != "refresh" {
+		return errors.New("需要使用 refresh token")
+	}
+	if claims.UserID != userID {
+		return errors.New("refresh token 不属于当前用户")
+	}
+	return nil
+}
+
 // UpdateAvatar uploads a new avatar for the user and updates the database
 func (s *UserService) UpdateAvatar(userID uint, file *multipart.FileHeader) (string, error) {
 	// Get current user to check for existing avatar
@@ -175,8 +260,12 @@ func (s *UserService) UpdateAvatar(userID uint, file *multipart.FileHeader) (str
 
 // UpdateDisplayName updates the user's display name
 func (s *UserService) UpdateDisplayName(userID uint, displayName string) error {
+	displayName = strings.TrimSpace(displayName)
 	if displayName == "" {
 		return errors.New("display_name 不能为空")
+	}
+	if len(displayName) > maxDisplayNameLength {
+		return errors.New("display_name 长度不能超过 100 个字符")
 	}
 	var user models.User
 	if err := global.Db.First(&user, userID).Error; err != nil {
@@ -193,6 +282,15 @@ func (s *UserService) UpdatePassword(userID uint, oldPassword, newPassword strin
 	var user models.User
 	if err := global.Db.First(&user, userID).Error; err != nil {
 		return errors.New("用户不存在")
+	}
+	if strings.TrimSpace(newPassword) == "" {
+		return errors.New("new_password 不能为空")
+	}
+	if len(newPassword) < minPasswordLength || len(newPassword) > maxPasswordLength {
+		return errors.New("new_password 长度必须在 6 到 72 个字符之间")
+	}
+	if oldPassword == newPassword {
+		return errors.New("新密码不能与旧密码相同")
 	}
 
 	// 验证旧密码
