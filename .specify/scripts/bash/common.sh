@@ -124,15 +124,25 @@ check_feature_branch() {
         return 0
     fi
 
-    # Accept sequential prefix (3+ digits) but exclude malformed timestamps
+    # Accept sequential prefix (3+ digits) but exclude malformed timestamps.
     # Malformed: 7-or-8 digit date + 6-digit time with no trailing slug (e.g. "2026031-143022" or "20260319-143022")
     local is_sequential=false
+    local is_timestamp=false
+    local is_conventional=false
+
     if [[ "$branch" =~ ^[0-9]{3,}- ]] && [[ ! "$branch" =~ ^[0-9]{7}-[0-9]{6}- ]] && [[ ! "$branch" =~ ^[0-9]{7,8}-[0-9]{6}$ ]]; then
         is_sequential=true
     fi
-    if [[ "$is_sequential" != "true" ]] && [[ ! "$branch" =~ ^[0-9]{8}-[0-9]{6}- ]]; then
+    if [[ "$branch" =~ ^[0-9]{8}-[0-9]{6}- ]]; then
+        is_timestamp=true
+    fi
+    if [[ "$branch" =~ ^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)/[a-z0-9._/-]+$ ]]; then
+        is_conventional=true
+    fi
+
+    if [[ "$is_sequential" != "true" ]] && [[ "$is_timestamp" != "true" ]] && [[ "$is_conventional" != "true" ]]; then
         echo "ERROR: Not on a feature branch. Current branch: $branch" >&2
-        echo "Feature branches should be named like: 001-feature-name, 1234-feature-name, or 20260319-143022-feature-name" >&2
+        echo "Feature branches should be named like: 001-feature-name, 1234-feature-name, 20260319-143022-feature-name, or refactor/scope-name" >&2
         return 1
     fi
 
@@ -147,6 +157,12 @@ find_feature_dir_by_prefix() {
     local repo_root="$1"
     local branch_name="$2"
     local specs_dir="$repo_root/specs"
+    local exact_match="$specs_dir/$branch_name"
+
+    if [[ -d "$exact_match" ]]; then
+        echo "$exact_match"
+        return
+    fi
 
     # Extract prefix from branch (e.g., "004" from "004-whatever" or "20260319-143022" from timestamp branches)
     local prefix=""
@@ -333,4 +349,3 @@ except Exception:
     # Callers running under set -e should use: TEMPLATE=$(resolve_template ...) || true
     return 1
 }
-
