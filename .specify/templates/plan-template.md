@@ -31,7 +31,19 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] Planned structure uses `cmd/api`, `internal/platform`, `internal/shared`,
+      `internal/modules/<module>`, `migrations`, `tests`, and `docs`, or records
+      an equivalent boundary-preserving alternative.
+- [ ] Each affected module keeps `http`, `app`, `domain`, and `infra`
+      responsibilities separate; business logic is not placed in handlers or
+      adapters.
+- [ ] API changes define stable request, response, and error contracts with
+      explicit validation and no persistence-model leakage.
+- [ ] External dependencies are injected behind interfaces where business logic
+      touches them, and concrete wiring stays in `internal/platform`.
+- [ ] Preserved or changed domain invariants are identified explicitly.
+- [ ] Unit, integration, and contract test coverage is planned for every changed
+      behavior that requires it under the constitution.
 
 ## Project Structure
 
@@ -50,45 +62,29 @@ specs/[###-feature]/
 ### Source Code (repository root)
 <!--
   ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
+  for this feature. Keep the refactor constitution's boundary rules intact.
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+cmd/
+└── api/
 
+internal/
+├── platform/
+├── shared/
+└── modules/
+    └── [module-name]/
+        ├── domain/
+        ├── app/
+        ├── infra/
+        └── http/
+
+migrations/
 tests/
 ├── contract/
 ├── integration/
 └── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+docs/
 ```
 
 **Structure Decision**: [Document the selected structure and reference the real

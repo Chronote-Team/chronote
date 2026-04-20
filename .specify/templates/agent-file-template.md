@@ -12,6 +12,10 @@ Auto-generated from all feature plans. Last updated: [DATE]
 [ACTUAL STRUCTURE FROM PLANS]
 ```
 
+## Non-Negotiable Constraints
+
+[EXTRACTED FROM CONSTITUTION AND ACTIVE PLANS]
+
 ## Commands
 
 [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES]

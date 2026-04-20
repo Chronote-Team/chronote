@@ -75,6 +75,32 @@
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
 
+## Contract and Invariant Impact *(mandatory)*
+
+<!--
+  ACTION REQUIRED: Record every API contract or invariant affected by this
+  feature. If none are affected, state that explicitly.
+-->
+
+### API Contract Impact
+
+- Affected route groups: [e.g., `/user/*`, `/v1/postcards/*`, or "None"]
+- Request schema changes: [Describe fields, validation, and normalization]
+- Response schema changes: [Describe output fields and compatibility impact]
+- Error schema changes: [Describe status codes, error types, and messages]
+
+### Domain Invariant Impact
+
+- Preserved invariants: [List existing rules that remain unchanged]
+- New invariants: [List any new business rules introduced]
+- Amended invariants: [List changed rules and migration/compatibility handling]
+
+### Boundary Impact
+
+- Modules touched: [e.g., `internal/modules/auth`, `internal/modules/postcards`]
+- Persistence leakage check: [Confirm DTOs remain separate from storage models]
+- Dependency isolation check: [Confirm business logic avoids direct globals and framework types]
+
 ## Requirements *(mandatory)*
 
 <!--
@@ -126,3 +152,4 @@
 - [Assumption about scope boundaries, e.g., "Mobile support is out of scope for v1"]
 - [Assumption about data/environment, e.g., "Existing authentication system will be reused"]
 - [Dependency on existing system/service, e.g., "Requires access to the existing user profile API"]
+- [Assumption about replacement strategy, e.g., "Legacy package layout compatibility is out of scope unless API compatibility requires it"]
