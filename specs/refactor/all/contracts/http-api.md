@@ -2,7 +2,7 @@
 
 ## Contract Scope
 
-This document records the public HTTP contract that the replacement backend must preserve while implementation moves into the `refactor/` application tree.
+This document records the public HTTP contract that the replacement backend must preserve while implementation moves into the repository root architecture.
 
 ## Global Contract Rules
 

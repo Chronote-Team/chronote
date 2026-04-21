@@ -11,18 +11,17 @@ Read the feature definition and baseline references before implementation:
 - `/home/bowen/Coding/chronote/ai_generated/api_documentation.md`
 - `/home/bowen/Coding/chronote/docs/superpowers/plans/2026-04-20-chronote-refactor-replacement.md`
 
-## 2. Bootstrap The Replacement Workspace
+## 2. Bootstrap The Root-Level Replacement Workspace
 
 From the repository root:
 
 ```bash
-mkdir -p refactor
-cd refactor
-go mod init chronote/refactor
+mkdir -p cmd/api internal/platform internal/shared internal/modules tests migrations
+go mod init chronote-refactor
 go mod tidy
 ```
 
-Create the planned directory skeleton under `refactor/` before adding slice implementations.
+Create the planned directory skeleton at the repository root before adding slice implementations.
 
 ## 3. Implement In Slice Order
 
@@ -38,21 +37,21 @@ Work in this sequence:
 
 ## 4. Verify Continuously
 
-Run narrow tests as each slice lands:
+Run narrow tests as each slice lands. In this workspace, prefer the offline-safe form because the module cache is already populated locally:
 
 ```bash
-cd refactor && go test ./internal/shared/... -v
-cd refactor && go test ./internal/platform/... -v
-cd refactor && go test ./internal/modules/health/... ./tests/contract/... -run 'Health' -v
-cd refactor && go test ./internal/modules/users/... ./internal/modules/auth/... ./tests/contract/... -run 'User|Auth|Register|Login|Refresh|Logout' -v
-cd refactor && go test ./internal/modules/postcards/... ./tests/contract/... -run 'Postcard' -v
-cd refactor && go test ./internal/modules/media/... ./tests/contract/... -run 'Media' -v
+env GOCACHE=/tmp/go-build GOPROXY=off go test ./internal/shared/... -v
+env GOCACHE=/tmp/go-build GOPROXY=off go test ./internal/platform/... -v
+env GOCACHE=/tmp/go-build GOPROXY=off go test ./internal/modules/health/... ./tests/contract/... -run 'Health' -v
+env GOCACHE=/tmp/go-build GOPROXY=off go test ./internal/modules/users/... ./internal/modules/auth/... ./tests/contract/... -run 'User|Auth|Register|Login|Refresh|Logout' -v
+env GOCACHE=/tmp/go-build GOPROXY=off go test ./internal/modules/postcards/... ./tests/contract/... -run 'Postcard' -v
+env GOCACHE=/tmp/go-build GOPROXY=off go test ./internal/modules/media/... ./tests/contract/... -run 'Media' -v
 ```
 
 Before cutover readiness, run the full verification suite:
 
 ```bash
-cd refactor && go test ./... -v
+env GOCACHE=/tmp/go-build GOPROXY=off go test ./... -v
 ```
 
 ## 5. Guardrails

@@ -1,11 +1,11 @@
 # Research: Chronote Backend Contract-Preserving Refactor
 
-## Decision 1: Develop In An Isolated `refactor/` Application Tree
+## Decision 1: Develop In The Repository Root Architecture
 
-- **Decision**: Build the replacement backend inside a dedicated `refactor/` subtree that mirrors the target `cmd/api`, `internal/platform`, `internal/shared`, `internal/modules`, `migrations`, and `tests` boundaries.
-- **Rationale**: The constitution explicitly prefers replacement-first delivery and forbids modifying the legacy codebase in `/home/bowen/Coding/chronote`. A dedicated subtree keeps the replacement isolated while preserving the final architecture.
+- **Decision**: Build the replacement backend directly in the repository root using `cmd/api`, `internal/platform`, `internal/shared`, `internal/modules`, `migrations`, and `tests`.
+- **Rationale**: The constitution explicitly prefers this root-level layout, and the user directed implementation to happen at the root instead of in an extra `refactor/` subtree.
 - **Alternatives considered**:
-  - Refactor the legacy package tree in place: rejected because it would mix migration and replacement work and make compatibility regressions harder to isolate.
+  - Implement in a nested `refactor/` subtree: rejected because the user explicitly prefers the root-level layout.
   - Create a second repository: rejected because the current repo is the approved write scope and the spec-kit workflow lives here.
 
 ## Decision 2: Use Contract Tests As The Primary Compatibility Guardrail

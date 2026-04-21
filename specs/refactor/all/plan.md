@@ -3,11 +3,11 @@
 **Branch**: `refactor/all` | **Date**: 2026-04-20 | **Spec**: [spec.md](/home/bowen/Coding/chronote-refactor/specs/refactor/all/spec.md)
 **Input**: Feature specification from `/specs/refactor/all/spec.md` plus implementation direction from `/home/bowen/Coding/chronote/docs/superpowers/plans/2026-04-20-chronote-refactor-replacement.md`
 
-**Note**: This plan adapts the external replacement plan to the local spec-kit workflow and current repository structure. During development, the replacement application lives under `refactor/` as an isolated subtree that mirrors the constitution's required target layout.
+**Note**: This plan adapts the external replacement plan to the local spec-kit workflow and current repository structure. Per user direction, the replacement application is implemented directly at the repository root while preserving the constitution's required `cmd/api`, `internal/platform`, `internal/shared`, `internal/modules`, `migrations`, and `tests` boundaries.
 
 ## Summary
 
-Build a replacement Chronote backend in an isolated `refactor/` Go application tree that preserves the existing API contract, response envelope, status behavior, default error text, and current data semantics while separating transport, application logic, domain rules, and infrastructure adapters. Execution proceeds slice-by-slice in compatibility-first order: bootstrap and shared primitives, health, users/auth, postcards, media, then cutover verification.
+Build a replacement Chronote backend at the repository root that preserves the existing API contract, response envelope, status behavior, default error text, and current data semantics while separating transport, application logic, domain rules, and infrastructure adapters. Execution proceeds slice-by-slice in compatibility-first order: bootstrap and shared primitives, health, users/auth, postcards, media, then cutover verification.
 
 ## Technical Context
 
@@ -50,62 +50,62 @@ specs/refactor/all/
 ### Source Code (repository root)
 
 ```text
-refactor/
-├── cmd/
-│   └── api/
-├── internal/
-│   ├── platform/
-│   │   ├── app/
-│   │   ├── auth/
-│   │   ├── config/
-│   │   ├── db/
-│   │   ├── http/
-│   │   ├── redis/
-│   │   └── s3/
-│   ├── shared/
-│   │   ├── errs/
-│   │   ├── pagination/
-│   │   └── response/
-│   └── modules/
-│       ├── auth/
-│       │   ├── app/
-│       │   ├── infra/
-│       │   └── http/
-│       ├── health/
-│       │   ├── app/
-│       │   └── http/
-│       ├── media/
-│       │   ├── app/
-│       │   ├── domain/
-│       │   ├── infra/
-│       │   └── http/
-│       ├── postcards/
-│       │   ├── app/
-│       │   ├── domain/
-│       │   ├── infra/
-│       │   └── http/
-│       └── users/
-│           ├── app/
-│           ├── domain/
-│           ├── infra/
-│           └── http/
-├── migrations/
-└── tests/
-    ├── contract/
-    ├── integration/
-    └── unit/
+cmd/
+└── api/
 
+internal/
+├── platform/
+│   ├── app/
+│   ├── auth/
+│   ├── config/
+│   ├── db/
+│   ├── http/
+│   ├── redis/
+│   └── s3/
+├── shared/
+│   ├── errs/
+│   ├── pagination/
+│   └── response/
+└── modules/
+    ├── auth/
+    │   ├── app/
+    │   ├── infra/
+    │   └── http/
+    ├── health/
+    │   ├── app/
+    │   └── http/
+    ├── media/
+    │   ├── app/
+    │   ├── domain/
+    │   ├── infra/
+    │   └── http/
+    ├── postcards/
+    │   ├── app/
+    │   ├── domain/
+    │   ├── infra/
+    │   └── http/
+    └── users/
+        ├── app/
+        ├── domain/
+        ├── infra/
+        └── http/
+
+migrations/
+tests/
+├── contract/
+├── integration/
+└── unit/
 docs/
 specs/
 ```
 
-**Structure Decision**: Development uses `refactor/` as an equivalent boundary-preserving alternative to the constitution's preferred root layout. The subtree contains the same `cmd/api`, `internal/platform`, `internal/shared`, `internal/modules`, `migrations`, and `tests` boundaries required for the final replacement, while allowing the legacy implementation to remain untouched until cutover.
+**Structure Decision**: Development now uses the repository root as the replacement workspace. This matches the constitution's preferred layout directly and removes the extra `refactor/` nesting while still keeping the legacy repository read-only.
 
 ## Phase 0: Research Decisions
 
 Phase 0 outputs are captured in [research.md](/home/bowen/Coding/chronote-refactor/specs/refactor/all/research.md). Key decisions:
 
-1. Build the replacement service under `refactor/` during implementation, then treat root-level promotion as a later cutover concern.
+1. Build the replacement service directly at the repository root during implementation.
 2. Use contract tests as the primary guardrail for response envelope, status behavior, and message compatibility across route groups.
 3. Keep domain/application code transport-neutral and inject persistence, token, blacklist, storage, and dependency-health adapters behind interfaces.
 4. Preserve current schema semantics for `users`, `postcards`, and `postcard_media`, deferring schema redesign and versioned migration cleanup until after compatibility is achieved.
@@ -124,15 +124,15 @@ Phase 0 outputs are captured in [research.md](/home/bowen/Coding/chronote-refact
 
 ### Quickstart
 
-- Create [quickstart.md](/home/bowen/Coding/chronote-refactor/specs/refactor/all/quickstart.md) with implementation bootstrap and verification steps for the refactor workspace.
+- Create [quickstart.md](/home/bowen/Coding/chronote-refactor/specs/refactor/all/quickstart.md) with implementation bootstrap and verification steps for the root-level workspace.
 
 ## Implementation Phases
 
 ### Phase A: Bootstrap And Shared Primitives
 
-Goal: create the isolated Go module, router bootstrap, shared response envelope helpers, typed application errors, and HTTP error mapping.
+Goal: create the root-level Go module, router bootstrap, shared response envelope helpers, typed application errors, and HTTP error mapping.
 
-- Bootstrap `refactor/go.mod`, `refactor/cmd/api/main.go`, and `refactor/internal/platform/http/*`.
+- Bootstrap `go.mod`, `cmd/api/main.go`, and `internal/platform/http/*`.
 - Add integration smoke tests proving the router can register `/health` without binding network sockets.
 - Add shared response and error packages that enforce the current `code` / `message` / `data` contract.
 
@@ -195,38 +195,38 @@ Goal: prove the refactor can replace the legacy implementation safely.
 
 ### Bootstrap And Platform
 
-- `refactor/go.mod`
-- `refactor/cmd/api/main.go`
-- `refactor/internal/platform/app/app.go`
-- `refactor/internal/platform/config/config.go`
-- `refactor/internal/platform/db/postgres.go`
-- `refactor/internal/platform/redis/client.go`
-- `refactor/internal/platform/s3/client.go`
-- `refactor/internal/platform/http/router.go`
-- `refactor/internal/platform/http/server.go`
-- `refactor/internal/platform/auth/jwt_service.go`
-- `refactor/internal/platform/auth/password_service.go`
+- `go.mod`
+- `cmd/api/main.go`
+- `internal/platform/app/app.go`
+- `internal/platform/config/config.go`
+- `internal/platform/db/postgres.go`
+- `internal/platform/redis/client.go`
+- `internal/platform/s3/client.go`
+- `internal/platform/http/router.go`
+- `internal/platform/http/server.go`
+- `internal/platform/auth/jwt_service.go`
+- `internal/platform/auth/password_service.go`
 
 ### Shared
 
-- `refactor/internal/shared/errs/errors.go`
-- `refactor/internal/shared/errs/http_mapper.go`
-- `refactor/internal/shared/response/envelope.go`
-- `refactor/internal/shared/pagination/pagination.go`
+- `internal/shared/errs/errors.go`
+- `internal/shared/errs/http_mapper.go`
+- `internal/shared/response/envelope.go`
+- `internal/shared/pagination/pagination.go`
 
 ### Modules
 
-- `refactor/internal/modules/health/...`
-- `refactor/internal/modules/users/...`
-- `refactor/internal/modules/auth/...`
-- `refactor/internal/modules/postcards/...`
-- `refactor/internal/modules/media/...`
+- `internal/modules/health/...`
+- `internal/modules/users/...`
+- `internal/modules/auth/...`
+- `internal/modules/postcards/...`
+- `internal/modules/media/...`
 
 ### Verification
 
-- `refactor/tests/contract/...`
-- `refactor/tests/integration/...`
-- `refactor/tests/unit/...`
+- `tests/contract/...`
+- `tests/integration/...`
+- `tests/unit/...`
 
 ## Risks And Mitigations
 
@@ -234,8 +234,8 @@ Goal: prove the refactor can replace the legacy implementation safely.
 - **Error-message incompatibility**: Centralize HTTP mapping and preserve message text at the transport boundary unless a documented exception is approved.
 - **Schema assumption mismatch**: Keep the current schema semantics intact and avoid redesign during this feature.
 - **Cross-layer leakage**: Enforce DTO separation and interface-driven dependencies in every slice review.
-- **Replacement sprawl**: Build slice-by-slice in a dedicated `refactor/` tree and defer cutover mechanics until parity is verified.
+- **Replacement sprawl**: Build slice-by-slice at the root-level architecture boundaries and defer deployment cutover mechanics until parity is verified.
 
 ## Complexity Tracking
 
-No constitution violations are currently required. The `refactor/` subtree is an approved boundary-preserving alternative for development isolation and does not weaken the target architecture.
+No constitution violations are currently required. The repository root now follows the constitution's preferred layout directly.

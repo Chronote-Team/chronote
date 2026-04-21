@@ -15,21 +15,21 @@
 
 ## Path Conventions
 
-- **Entrypoint**: `refactor/cmd/api/`
-- **Platform wiring**: `refactor/internal/platform/`
-- **Shared technical utilities**: `refactor/internal/shared/`
-- **Business modules**: `refactor/internal/modules/<module>/{domain,app,infra,http}`
-- **Migrations**: `refactor/migrations/`
-- **Tests**: `refactor/tests/{unit,integration,contract}/`
+- **Entrypoint**: `cmd/api/`
+- **Platform wiring**: `internal/platform/`
+- **Shared technical utilities**: `internal/shared/`
+- **Business modules**: `internal/modules/<module>/{domain,app,infra,http}`
+- **Migrations**: `migrations/`
+- **Tests**: `tests/{unit,integration,contract}/`
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Initialize the isolated replacement workspace and planning-aligned directory structure.
+**Purpose**: Initialize the root-level replacement workspace and planning-aligned directory structure.
 
-- [ ] T001 Create the replacement workspace directories under `refactor/cmd/api`, `refactor/internal/platform`, `refactor/internal/shared`, `refactor/internal/modules`, `refactor/migrations`, and `refactor/tests`
-- [ ] T002 Initialize the Go module and baseline dependencies in `refactor/go.mod`
-- [ ] T003 [P] Create application bootstrap skeleton in `refactor/cmd/api/main.go`, `refactor/internal/platform/app/app.go`, and `refactor/internal/platform/http/server.go`
-- [ ] T004 [P] Create router bootstrap skeleton in `refactor/internal/platform/http/router.go` and `refactor/tests/integration/test_app.go`
+- [X] T001 Create the root-level project directories under `cmd/api`, `internal/platform`, `internal/shared`, `internal/modules`, `migrations`, and `tests`
+- [X] T002 Initialize the Go module and baseline dependencies in `go.mod`
+- [X] T003 [P] Create application bootstrap skeleton in `cmd/api/main.go`, `internal/platform/app/app.go`, and `internal/platform/http/server.go`
+- [X] T004 [P] Create router bootstrap skeleton in `internal/platform/http/router.go` and `tests/integration/test_app.go`
 
 ---
 
@@ -39,14 +39,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 Create shared response envelope helpers in `refactor/internal/shared/response/envelope.go`
-- [ ] T006 [P] Create typed application errors and HTTP mapping in `refactor/internal/shared/errs/errors.go` and `refactor/internal/shared/errs/http_mapper.go`
-- [ ] T007 [P] Create shared pagination helpers in `refactor/internal/shared/pagination/pagination.go`
-- [ ] T008 Create shared tests for envelope and HTTP error mapping in `refactor/internal/shared/response/envelope_test.go` and `refactor/internal/shared/errs/http_mapper_test.go`
-- [ ] T009 Create configuration loading in `refactor/internal/platform/config/config.go`
-- [ ] T010 [P] Create Postgres and Redis client wiring in `refactor/internal/platform/db/postgres.go` and `refactor/internal/platform/redis/client.go`
-- [ ] T011 [P] Create S3, JWT, and password platform services in `refactor/internal/platform/s3/client.go`, `refactor/internal/platform/auth/jwt_service.go`, and `refactor/internal/platform/auth/password_service.go`
-- [ ] T012 Create platform adapter tests in `refactor/internal/platform/auth/jwt_service_test.go` and `refactor/internal/platform/auth/password_service_test.go`
+- [X] T005 Create shared response envelope helpers in `internal/shared/response/envelope.go`
+- [X] T006 [P] Create typed application errors and HTTP mapping in `internal/shared/errs/errors.go` and `internal/shared/errs/http_mapper.go`
+- [X] T007 [P] Create shared pagination helpers in `internal/shared/pagination/pagination.go`
+- [X] T008 Create shared tests for envelope and HTTP error mapping in `internal/shared/response/envelope_test.go` and `internal/shared/errs/http_mapper_test.go`
+- [X] T009 Create configuration loading in `internal/platform/config/config.go`
+- [X] T010 [P] Create Postgres and Redis client wiring in `internal/platform/db/postgres.go` and `internal/platform/redis/client.go`
+- [X] T011 [P] Create S3, JWT, and password platform services in `internal/platform/s3/client.go`, `internal/platform/auth/jwt_service.go`, and `internal/platform/auth/password_service.go`
+- [X] T012 Create platform adapter tests in `internal/platform/auth/jwt_service_test.go` and `internal/platform/auth/password_service_test.go`
 
 **Checkpoint**: Foundation ready. User story implementation can now begin.
 
@@ -60,23 +60,23 @@
 
 ### Tests for User Story 1
 
-- [ ] T013 [P] [US1] Create health contract tests in `refactor/tests/contract/health_contract_test.go`
-- [ ] T014 [P] [US1] Create health unit tests in `refactor/internal/modules/health/app/service_test.go`
-- [ ] T015 [P] [US1] Create user/auth contract tests in `refactor/tests/contract/user_auth_contract_test.go`
-- [ ] T016 [P] [US1] Create user and auth unit tests in `refactor/internal/modules/users/app/service_test.go` and `refactor/internal/modules/auth/app/service_test.go`
-- [ ] T017 [P] [US1] Create user/auth integration flow tests in `refactor/tests/integration/user_auth_flow_test.go`
+- [X] T013 [P] [US1] Create health contract tests in `tests/contract/health_contract_test.go`
+- [X] T014 [P] [US1] Create health unit tests in `internal/modules/health/app/service_test.go`
+- [X] T015 [P] [US1] Create user/auth contract tests in `tests/contract/user_auth_contract_test.go`
+- [X] T016 [P] [US1] Create user and auth unit tests in `internal/modules/users/app/service_test.go` and `internal/modules/auth/app/service_test.go`
+- [X] T017 [P] [US1] Create user/auth integration flow tests in `tests/integration/user_auth_flow_test.go`
 
 ### Implementation for User Story 1
 
-- [ ] T018 [P] [US1] Implement health application service and dependency interfaces in `refactor/internal/modules/health/app/service.go`
-- [ ] T019 [US1] Implement health handlers and route registration in `refactor/internal/modules/health/http/handler.go` and `refactor/internal/modules/health/http/routes.go`
-- [ ] T020 [P] [US1] Implement user domain model and repository contracts in `refactor/internal/modules/users/domain/user.go` and `refactor/internal/modules/users/app/repository.go`
-- [ ] T021 [P] [US1] Implement auth service contracts and blacklist abstraction in `refactor/internal/modules/auth/app/service.go` and `refactor/internal/modules/auth/app/token_blacklist.go`
-- [ ] T022 [US1] Implement user application service logic in `refactor/internal/modules/users/app/service.go`
-- [ ] T023 [US1] Implement user persistence and token blacklist adapters in `refactor/internal/modules/users/infra/gorm_repository.go` and `refactor/internal/modules/auth/infra/redis_blacklist.go`
-- [ ] T024 [P] [US1] Implement user and auth DTOs and handlers in `refactor/internal/modules/users/http/dto.go`, `refactor/internal/modules/users/http/handler.go`, `refactor/internal/modules/auth/http/handler.go`, and `refactor/internal/modules/auth/http/middleware.go`
-- [ ] T025 [US1] Register `/health` and `/user/*` routes and wire dependencies in `refactor/internal/modules/users/http/routes.go`, `refactor/internal/modules/auth/http/routes.go`, and `refactor/internal/platform/http/router.go`
-- [ ] T026 [US1] Preserve health, auth, and user contract messages through HTTP mapping and shared envelopes in `refactor/internal/shared/errs/http_mapper.go` and `refactor/internal/shared/response/envelope.go`
+- [X] T018 [P] [US1] Implement health application service and dependency interfaces in `internal/modules/health/app/service.go`
+- [X] T019 [US1] Implement health handlers and route registration in `internal/modules/health/http/handler.go` and `internal/modules/health/http/routes.go`
+- [X] T020 [P] [US1] Implement user domain model and repository contracts in `internal/modules/users/domain/user.go` and `internal/modules/users/app/repository.go`
+- [X] T021 [P] [US1] Implement auth service contracts and blacklist abstraction in `internal/modules/auth/app/service.go` and `internal/modules/auth/app/token_blacklist.go`
+- [X] T022 [US1] Implement user application service logic in `internal/modules/users/app/service.go`
+- [X] T023 [US1] Implement user persistence and token blacklist adapters in `internal/modules/users/infra/gorm_repository.go` and `internal/modules/auth/infra/redis_blacklist.go`
+- [X] T024 [P] [US1] Implement user and auth DTOs and handlers in `internal/modules/users/http/dto.go`, `internal/modules/users/http/handler.go`, `internal/modules/auth/http/handler.go`, and `internal/modules/auth/http/middleware.go`
+- [X] T025 [US1] Register `/health` and `/user/*` routes and wire dependencies in `internal/modules/users/http/routes.go`, `internal/modules/auth/http/routes.go`, and `internal/platform/http/router.go`
+- [X] T026 [US1] Preserve health, auth, and user contract messages through HTTP mapping and shared envelopes in `internal/shared/errs/http_mapper.go` and `internal/shared/response/envelope.go`
 
 **Checkpoint**: User Story 1 should be functional and testable as the MVP.
 
@@ -90,23 +90,23 @@
 
 ### Tests for User Story 2
 
-- [ ] T027 [P] [US2] Create postcard contract tests in `refactor/tests/contract/postcard_contract_test.go`
-- [ ] T028 [P] [US2] Create media contract tests in `refactor/tests/contract/media_contract_test.go`
-- [ ] T029 [P] [US2] Create postcard unit tests in `refactor/internal/modules/postcards/app/service_test.go`
-- [ ] T030 [P] [US2] Create media unit tests in `refactor/internal/modules/media/app/service_test.go`
-- [ ] T031 [P] [US2] Create postcard/media integration flow tests in `refactor/tests/integration/postcards_media_flow_test.go`
+- [X] T027 [P] [US2] Create postcard contract tests in `tests/contract/postcard_contract_test.go`
+- [X] T028 [P] [US2] Create media contract tests in `tests/contract/media_contract_test.go`
+- [X] T029 [P] [US2] Create postcard unit tests in `internal/modules/postcards/app/service_test.go`
+- [X] T030 [P] [US2] Create media unit tests in `internal/modules/media/app/service_test.go`
+- [X] T031 [P] [US2] Create postcard/media integration flow tests in `tests/integration/postcards_media_flow_test.go`
 
 ### Implementation for User Story 2
 
-- [ ] T032 [P] [US2] Implement postcard domain model and repository contracts in `refactor/internal/modules/postcards/domain/postcard.go` and `refactor/internal/modules/postcards/app/repository.go`
-- [ ] T033 [P] [US2] Implement postcard policy and application services in `refactor/internal/modules/postcards/app/policy.go` and `refactor/internal/modules/postcards/app/service.go`
-- [ ] T034 [P] [US2] Implement postcard persistence adapter in `refactor/internal/modules/postcards/infra/gorm_repository.go`
-- [ ] T035 [US2] Implement postcard DTOs, handlers, and routes in `refactor/internal/modules/postcards/http/dto.go`, `refactor/internal/modules/postcards/http/handler.go`, and `refactor/internal/modules/postcards/http/routes.go`
-- [ ] T036 [P] [US2] Implement media domain model and repository/storage contracts in `refactor/internal/modules/media/domain/media.go`, `refactor/internal/modules/media/app/repository.go`, `refactor/internal/modules/media/app/storage.go`, and `refactor/internal/modules/media/app/image_processor.go`
-- [ ] T037 [US2] Implement media application service and ordering rules in `refactor/internal/modules/media/app/service.go`
-- [ ] T038 [P] [US2] Implement media persistence and storage adapters in `refactor/internal/modules/media/infra/gorm_repository.go`, `refactor/internal/modules/media/infra/s3_storage.go`, and `refactor/internal/modules/media/infra/image_processor.go`
-- [ ] T039 [US2] Implement media DTOs, handlers, and routes in `refactor/internal/modules/media/http/dto.go`, `refactor/internal/modules/media/http/handler.go`, and `refactor/internal/modules/media/http/routes.go`
-- [ ] T040 [US2] Wire `/v1/postcards*` and media routes with optional-auth and owner-only policies in `refactor/internal/platform/http/router.go`
+- [X] T032 [P] [US2] Implement postcard domain model and repository contracts in `internal/modules/postcards/domain/postcard.go` and `internal/modules/postcards/app/repository.go`
+- [X] T033 [P] [US2] Implement postcard policy and application services in `internal/modules/postcards/app/policy.go` and `internal/modules/postcards/app/service.go`
+- [X] T034 [P] [US2] Implement postcard persistence adapter in `internal/modules/postcards/infra/gorm_repository.go`
+- [X] T035 [US2] Implement postcard DTOs, handlers, and routes in `internal/modules/postcards/http/dto.go`, `internal/modules/postcards/http/handler.go`, and `internal/modules/postcards/http/routes.go`
+- [X] T036 [P] [US2] Implement media domain model and repository/storage contracts in `internal/modules/media/domain/media.go`, `internal/modules/media/app/repository.go`, `internal/modules/media/app/storage.go`, and `internal/modules/media/app/image_processor.go`
+- [X] T037 [US2] Implement media application service and ordering rules in `internal/modules/media/app/service.go`
+- [X] T038 [P] [US2] Implement media persistence and storage adapters in `internal/modules/media/infra/gorm_repository.go`, `internal/modules/media/infra/s3_storage.go`, and `internal/modules/media/infra/image_processor.go`
+- [X] T039 [US2] Implement media DTOs, handlers, and routes in `internal/modules/media/http/dto.go`, `internal/modules/media/http/handler.go`, and `internal/modules/media/http/routes.go`
+- [X] T040 [US2] Wire `/v1/postcards*` and media routes with optional-auth and owner-only policies in `internal/platform/http/router.go`
 
 **Checkpoint**: User Stories 1 and 2 should now both work independently.
 
@@ -120,15 +120,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T041 [P] [US3] Create cutover compatibility integration tests in `refactor/tests/integration/cutover_compatibility_test.go`
-- [ ] T042 [P] [US3] Create supported-data fixture coverage in `refactor/tests/integration/fixtures.go` and `refactor/tests/integration/assertions.go`
-- [ ] T043 [P] [US3] Create full-suite verification task runner coverage in `refactor/tests/integration/full_stack_verification_test.go`
+- [ ] T041 [P] [US3] Create cutover compatibility integration tests in `tests/integration/cutover_compatibility_test.go`
+- [ ] T042 [P] [US3] Create supported-data fixture coverage in `tests/integration/fixtures.go` and `tests/integration/assertions.go`
+- [ ] T043 [P] [US3] Create full-suite verification task runner coverage in `tests/integration/full_stack_verification_test.go`
 
 ### Implementation for User Story 3
 
-- [ ] T044 [P] [US3] Implement shared integration test app bootstrap in `refactor/tests/integration/test_app.go`
-- [ ] T045 [US3] Add compatibility fixture loading and supported-data assertions in `refactor/tests/integration/fixtures.go` and `refactor/tests/integration/assertions.go`
-- [ ] T046 [US3] Create migration placeholder and schema-compatibility notes in `refactor/migrations/README.md`
+- [X] T044 [P] [US3] Implement shared integration test app bootstrap in `tests/integration/test_app.go`
+- [ ] T045 [US3] Add compatibility fixture loading and supported-data assertions in `tests/integration/fixtures.go` and `tests/integration/assertions.go`
+- [ ] T046 [US3] Create migration placeholder and schema-compatibility notes in `migrations/README.md`
 - [ ] T047 [US3] Update deployment cutover entrypoints for the replacement app in `Dockerfile`, `docker-compose.yml`, and `docker-compose.dev.yml`
 - [ ] T048 [US3] Document approved compatibility exceptions and cutover readiness notes in `specs/refactor/all/contracts/http-api.md` and `specs/refactor/all/quickstart.md`
 
@@ -140,7 +140,7 @@
 
 **Purpose**: Final hardening, verification, and documentation updates across all stories.
 
-- [ ] T049 [P] Run the full Go test suite from `refactor/` and record verification notes in `specs/refactor/all/quickstart.md`
+- [ ] T049 [P] Run the full Go test suite from the repository root and record verification notes in `specs/refactor/all/quickstart.md`
 - [ ] T050 [P] Review API message/status mismatches and update compatibility documentation in `specs/refactor/all/contracts/http-api.md`
 - [ ] T051 Validate branch/workflow helper behavior for implementation commands in `.specify/scripts/bash/common.sh` and `.specify/scripts/bash/tests/common-branch-resolution-test.sh`
 - [ ] T052 [P] Update agent guidance and developer workflow notes in `AGENTS.md`
@@ -184,14 +184,14 @@
 
 ```bash
 # Write story tests in parallel
-Task: "Create health contract tests in refactor/tests/contract/health_contract_test.go"
-Task: "Create user/auth contract tests in refactor/tests/contract/user_auth_contract_test.go"
-Task: "Create user and auth unit tests in refactor/internal/modules/users/app/service_test.go and refactor/internal/modules/auth/app/service_test.go"
+Task: "Create health contract tests in tests/contract/health_contract_test.go"
+Task: "Create user/auth contract tests in tests/contract/user_auth_contract_test.go"
+Task: "Create user and auth unit tests in internal/modules/users/app/service_test.go and internal/modules/auth/app/service_test.go"
 
 # Build story internals in parallel after tests exist
-Task: "Implement health application service in refactor/internal/modules/health/app/service.go"
-Task: "Implement user domain model and repository contracts in refactor/internal/modules/users/domain/user.go and refactor/internal/modules/users/app/repository.go"
-Task: "Implement auth service contracts and blacklist abstraction in refactor/internal/modules/auth/app/service.go and refactor/internal/modules/auth/app/token_blacklist.go"
+Task: "Implement health application service in internal/modules/health/app/service.go"
+Task: "Implement user domain model and repository contracts in internal/modules/users/domain/user.go and internal/modules/users/app/repository.go"
+Task: "Implement auth service contracts and blacklist abstraction in internal/modules/auth/app/service.go and internal/modules/auth/app/token_blacklist.go"
 ```
 
 ---
@@ -200,14 +200,14 @@ Task: "Implement auth service contracts and blacklist abstraction in refactor/in
 
 ```bash
 # Write story tests in parallel
-Task: "Create postcard contract tests in refactor/tests/contract/postcard_contract_test.go"
-Task: "Create media contract tests in refactor/tests/contract/media_contract_test.go"
-Task: "Create postcard/media integration flow tests in refactor/tests/integration/postcards_media_flow_test.go"
+Task: "Create postcard contract tests in tests/contract/postcard_contract_test.go"
+Task: "Create media contract tests in tests/contract/media_contract_test.go"
+Task: "Create postcard/media integration flow tests in tests/integration/postcards_media_flow_test.go"
 
 # Build domain and infra in parallel after tests exist
-Task: "Implement postcard domain model and repository contracts in refactor/internal/modules/postcards/domain/postcard.go and refactor/internal/modules/postcards/app/repository.go"
-Task: "Implement media domain model and repository/storage contracts in refactor/internal/modules/media/domain/media.go, refactor/internal/modules/media/app/repository.go, refactor/internal/modules/media/app/storage.go, and refactor/internal/modules/media/app/image_processor.go"
-Task: "Implement media persistence and storage adapters in refactor/internal/modules/media/infra/gorm_repository.go, refactor/internal/modules/media/infra/s3_storage.go, and refactor/internal/modules/media/infra/image_processor.go"
+Task: "Implement postcard domain model and repository contracts in internal/modules/postcards/domain/postcard.go and internal/modules/postcards/app/repository.go"
+Task: "Implement media domain model and repository/storage contracts in internal/modules/media/domain/media.go, internal/modules/media/app/repository.go, internal/modules/media/app/storage.go, and internal/modules/media/app/image_processor.go"
+Task: "Implement media persistence and storage adapters in internal/modules/media/infra/gorm_repository.go, internal/modules/media/infra/s3_storage.go, and internal/modules/media/infra/image_processor.go"
 ```
 
 ---
