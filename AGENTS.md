@@ -45,4 +45,5 @@ Go 1.25: Follow standard conventions
 <!-- MANUAL ADDITIONS START -->
 - The current verified root-level replacement slice covers health, users/auth, postcards, and media with in-memory test wiring in `internal/platform/app/app.go`.
 - Prefer the offline-safe test command above in this workspace because network access may be restricted while Go modules are already available in the local cache.
+- US3 cutover verification uses isolated Podman containers on a dedicated network such as `chronote_us3_test`; do not run those tests on the default bridge or alongside unrelated local service containers.
 <!-- MANUAL ADDITIONS END -->

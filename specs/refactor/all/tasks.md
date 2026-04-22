@@ -120,17 +120,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T041 [P] [US3] Create cutover compatibility integration tests in `tests/integration/cutover_compatibility_test.go`
-- [ ] T042 [P] [US3] Create supported-data fixture coverage in `tests/integration/fixtures.go` and `tests/integration/assertions.go`
-- [ ] T043 [P] [US3] Create full-suite verification task runner coverage in `tests/integration/full_stack_verification_test.go`
+- [X] T041 [P] [US3] Create cutover compatibility integration tests in `tests/integration/cutover_compatibility_test.go`
+- [X] T042 [P] [US3] Create supported-data fixture coverage in `tests/integration/fixtures.go` and `tests/integration/assertions.go`
+- [X] T043 [P] [US3] Create full-suite verification task runner coverage in `tests/integration/full_stack_verification_test.go`
 
 ### Implementation for User Story 3
 
 - [X] T044 [P] [US3] Implement shared integration test app bootstrap in `tests/integration/test_app.go`
-- [ ] T045 [US3] Add compatibility fixture loading and supported-data assertions in `tests/integration/fixtures.go` and `tests/integration/assertions.go`
-- [ ] T046 [US3] Create migration placeholder and schema-compatibility notes in `migrations/README.md`
-- [ ] T047 [US3] Update deployment cutover entrypoints for the replacement app in `Dockerfile`, `docker-compose.yml`, and `docker-compose.dev.yml`
-- [ ] T048 [US3] Document approved compatibility exceptions and cutover readiness notes in `specs/refactor/all/contracts/http-api.md` and `specs/refactor/all/quickstart.md`
+- [X] T045 [US3] Add compatibility fixture loading and supported-data assertions in `tests/integration/fixtures.go` and `tests/integration/assertions.go`
+- [X] T046 [US3] Create migration placeholder and schema-compatibility notes in `migrations/README.md`
+- [X] T047 [US3] Update deployment cutover entrypoints for the replacement app in `Dockerfile`, `docker-compose.yml`, and `docker-compose.dev.yml`
+- [X] T048 [US3] Document approved compatibility exceptions and cutover readiness notes in `specs/refactor/all/contracts/http-api.md` and `specs/refactor/all/quickstart.md`
 
 **Checkpoint**: All user stories should now be independently functional and cutover-ready.
 
@@ -140,10 +140,10 @@
 
 **Purpose**: Final hardening, verification, and documentation updates across all stories.
 
-- [ ] T049 [P] Run the full Go test suite from the repository root and record verification notes in `specs/refactor/all/quickstart.md`
-- [ ] T050 [P] Review API message/status mismatches and update compatibility documentation in `specs/refactor/all/contracts/http-api.md`
+- [X] T049 [P] Run the full Go test suite from the repository root and record verification notes in `specs/refactor/all/quickstart.md`
+- [X] T050 [P] Review API message/status mismatches and update compatibility documentation in `specs/refactor/all/contracts/http-api.md`
 - [ ] T051 Validate branch/workflow helper behavior for implementation commands in `.specify/scripts/bash/common.sh` and `.specify/scripts/bash/tests/common-branch-resolution-test.sh`
-- [ ] T052 [P] Update agent guidance and developer workflow notes in `AGENTS.md`
+- [X] T052 [P] Update agent guidance and developer workflow notes in `AGENTS.md`
 
 ---
 

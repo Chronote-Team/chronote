@@ -84,3 +84,14 @@ The replacement backend must preserve key error categories and current message t
 - Contract tests must exist for every route group.
 - Each route group must cover at least one success path and one important failure, authorization, or degradation path.
 - Any approved contract deviation must be documented here before release.
+
+## Cutover Verification Notes
+
+- US3 cutover verification now exercises the replacement app against isolated Podman-backed PostgreSQL and Redis services with supported-data fixtures.
+- Verified cutover coverage includes:
+  - `/health` returning `200` with reachable PostgreSQL and Redis
+  - `/health/details` returning `207` when Redis is intentionally misconfigured while PostgreSQL remains reachable
+  - public postcard and media reads over fixture-backed legacy-compatible data
+  - private postcard access remaining forbidden to anonymous callers
+  - registration, login, and authenticated `/user/info` flow using the external PostgreSQL-backed repositories
+- Current verification does not yet include a live object-storage container in automated US3 tests. When `S3_*` settings are omitted, S3 remains an allowed degraded dependency for cutover verification rather than a hard blocker.

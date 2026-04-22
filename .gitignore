@@ -1,0 +1,13 @@
+*.exe
+*.test
+*.out
+vendor/
+.env*
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
+infra/init-db.local.sh
+.codex

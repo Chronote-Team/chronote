@@ -54,6 +54,27 @@ Before cutover readiness, run the full verification suite:
 env GOCACHE=/tmp/go-build GOPROXY=off go test ./... -v
 ```
 
+For US3 cutover verification with isolated Podman-backed PostgreSQL and Redis:
+
+```bash
+podman network create chronote_us3_test
+podman run --replace -d --name chronote_us3_pg --network chronote_us3_test -p 55432:5432 \
+  -e POSTGRES_DB=chronote -e POSTGRES_USER=chronote -e POSTGRES_PASSWORD=chronote \
+  docker.io/library/postgres:16-alpine
+podman run --replace -d --name chronote_us3_redis --network chronote_us3_test -p 56379:6379 \
+  docker.io/library/redis:8 redis-server --appendonly yes --requirepass chronote
+
+env CHRONOTE_CUTOVER_TESTS=1 \
+  POSTGRES_HOST=127.0.0.1 POSTGRES_PORT=55432 POSTGRES_USER=chronote POSTGRES_PASSWORD=chronote POSTGRES_DB=chronote \
+  POSTGRES_SSLMODE=disable POSTGRES_TIMEZONE=Asia/Shanghai \
+  REDIS_HOST=127.0.0.1 REDIS_PORT=56379 REDIS_PASSWORD=chronote REDIS_DB=0 \
+  JWT_SIGNING_KEY=cutover-test-signing-key ACCESS_TOKEN_EXPIRE=7200 REFRESH_TOKEN_EXPIRE=1814400 \
+  GOCACHE=/tmp/go-build GOPROXY=off \
+  go test ./tests/integration -run 'Cutover|FullStack|HealthDetailsDegrades' -v
+```
+
+These container-backed tests should run on a dedicated network such as `chronote_us3_test` to avoid interacting with unrelated local containers.
+
 ## 5. Guardrails
 
 - Do not modify `/home/bowen/Coding/chronote`; use it only as a compatibility reference.
