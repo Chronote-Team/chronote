@@ -11,3 +11,4 @@ Thumbs.db
 .idea/
 infra/init-db.local.sh
 .codex
+docs/
