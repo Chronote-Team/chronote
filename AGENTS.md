@@ -1,8 +1,10 @@
 # chronote-refactor Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-21
+Auto-generated from all feature plans. Last updated: 2026-05-10
 
 ## Active Technologies
+- Go 1.25 + Gin, GORM, PostgreSQL driver, existing Chronote shared response/error helpers, existing auth middleware (feature/random)
+- PostgreSQL for production postcard data; in-memory repositories for test app wiring (feature/random)
 
 - Go 1.25 + Gin, GORM, PostgreSQL driver, Redis client, AWS SDK v2 S3 client, JWT library, bcrypt/password hashing helpers (refactor/all)
 
@@ -39,6 +41,7 @@ docs/
 Go 1.25: Follow standard conventions
 
 ## Recent Changes
+- feature/random: Added Go 1.25 + Gin, GORM, PostgreSQL driver, existing Chronote shared response/error helpers, existing auth middleware
 
 - refactor/all: Added Go 1.25 + Gin, GORM, PostgreSQL driver, Redis client, AWS SDK v2 S3 client, JWT library, bcrypt/password hashing helpers
 

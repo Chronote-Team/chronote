@@ -126,6 +126,21 @@ func (h *Handler) GetPostcards(ctx *gin.Context) {
 	})
 }
 
+func (h *Handler) GetRandomPostcard(ctx *gin.Context) {
+	var userID uint
+	if value, ok := ctx.Get("userID"); ok {
+		userID = value.(uint)
+	}
+
+	postcard, err := h.postcards.GetRandom(userID)
+	if err != nil {
+		status, message := errs.MapHTTP(err)
+		response.Write(ctx, status, message, nil)
+		return
+	}
+	response.Write(ctx, http.StatusOK, "获取随机明信片成功", newPostcardResponse(postcard))
+}
+
 func (h *Handler) GetPostcardDetail(ctx *gin.Context) {
 	postcardID, err := parseUintParam(ctx.Param("id"))
 	if err != nil {

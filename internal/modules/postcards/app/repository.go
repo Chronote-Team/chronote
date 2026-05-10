@@ -9,6 +9,7 @@ import (
 type Repository interface {
 	Create(postcard *postcardsdomain.Postcard) error
 	FindByID(id uint) (*postcardsdomain.Postcard, error)
+	FindRandomAccessible(userID uint) (*postcardsdomain.Postcard, error)
 	List() ([]postcardsdomain.Postcard, error)
 	Update(postcard *postcardsdomain.Postcard) error
 	Delete(id uint) error

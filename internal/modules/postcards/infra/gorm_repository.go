@@ -62,6 +62,29 @@ func (r *Repository) FindByID(id uint) (*postcardsdomain.Postcard, error) {
 	return &postcard, nil
 }
 
+func (r *Repository) FindRandomAccessible(userID uint) (*postcardsdomain.Postcard, error) {
+	if r.db == nil {
+		return nil, errors.New("database not initialized")
+	}
+
+	query := r.db.Order("RANDOM()").Limit(1)
+	if userID == 0 {
+		query = query.Where("visibility = ?", "public")
+	} else {
+		query = query.Where("visibility = ? OR author_id = ?", "public", userID)
+	}
+
+	var model postcardModel
+	if err := query.First(&model).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	postcard := toDomain(model)
+	return &postcard, nil
+}
+
 func (r *Repository) List() ([]postcardsdomain.Postcard, error) {
 	if r.db == nil {
 		return nil, errors.New("database not initialized")

@@ -73,6 +73,118 @@ func TestPostcardContractPreservesVisibilityAndEnvelope(t *testing.T) {
 	}
 }
 
+func TestRandomPostcardContractReturnsPublicPostcardForAnonymousCaller(t *testing.T) {
+	app, err := appplatform.NewTestApp()
+	if err != nil {
+		t.Fatalf("NewTestApp returned error: %v", err)
+	}
+
+	accessToken := contractRegisterAndLogin(t, app, "randomwriter", "randomwriter@example.com")
+	contractCreatePostcard(t, app, accessToken, "Private Card", "private")
+	contractCreatePostcard(t, app, accessToken, "Public Card", "public")
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/postcards/random", nil)
+	res := httptest.NewRecorder()
+	app.Router().ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected random postcard 200, got %d body=%s", res.Code, res.Body.String())
+	}
+
+	payload := decodeContractPayload(t, res.Body.Bytes())
+	if payload["message"] != "获取随机明信片成功" {
+		t.Fatalf("unexpected random postcard message: %#v", payload["message"])
+	}
+	data, ok := payload["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected random postcard data object, got %#v", payload["data"])
+	}
+	if data["visibility"] != "public" {
+		t.Fatalf("expected anonymous random postcard to be public, got %#v", data["visibility"])
+	}
+}
+
+func TestRandomPostcardContractIncludesOwnedPrivatePostcardForAuthenticatedCaller(t *testing.T) {
+	app, err := appplatform.NewTestApp()
+	if err != nil {
+		t.Fatalf("NewTestApp returned error: %v", err)
+	}
+
+	otherToken := contractRegisterAndLogin(t, app, "otherwriter", "otherwriter@example.com")
+	contractCreatePostcard(t, app, otherToken, "Other Private Card", "private")
+	ownerToken := contractRegisterAndLogin(t, app, "ownerwriter", "ownerwriter@example.com")
+	ownedID := contractCreatePostcard(t, app, ownerToken, "Owned Private Card", "private")
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/postcards/random", nil)
+	req.Header.Set("Authorization", "Bearer "+ownerToken)
+	res := httptest.NewRecorder()
+	app.Router().ServeHTTP(res, req)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("expected random postcard 200, got %d body=%s", res.Code, res.Body.String())
+	}
+
+	payload := decodeContractPayload(t, res.Body.Bytes())
+	if payload["message"] != "获取随机明信片成功" {
+		t.Fatalf("unexpected random postcard message: %#v", payload["message"])
+	}
+	data, ok := payload["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected random postcard data object, got %#v", payload["data"])
+	}
+	if gotID := uint(data["id"].(float64)); gotID != ownedID {
+		t.Fatalf("expected owned private postcard %d, got %d", ownedID, gotID)
+	}
+	if data["visibility"] != "private" {
+		t.Fatalf("expected owned private visibility, got %#v", data["visibility"])
+	}
+}
+
+func TestRandomPostcardContractReturnsNotFoundWhenNoPostcardsAreAccessible(t *testing.T) {
+	app, err := appplatform.NewTestApp()
+	if err != nil {
+		t.Fatalf("NewTestApp returned error: %v", err)
+	}
+
+	accessToken := contractRegisterAndLogin(t, app, "privateonly", "privateonly@example.com")
+	contractCreatePostcard(t, app, accessToken, "Private Card", "private")
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/postcards/random", nil)
+	res := httptest.NewRecorder()
+	app.Router().ServeHTTP(res, req)
+
+	if res.Code != http.StatusNotFound {
+		t.Fatalf("expected random postcard 404, got %d body=%s", res.Code, res.Body.String())
+	}
+
+	payload := decodeContractPayload(t, res.Body.Bytes())
+	if payload["message"] != "明信片不存在" {
+		t.Fatalf("unexpected not found message: %#v", payload["message"])
+	}
+	if payload["data"] != nil {
+		t.Fatalf("expected null data, got %#v", payload["data"])
+	}
+}
+
+func TestRandomPostcardContractUsesRandomRouteInsteadOfDetailRoute(t *testing.T) {
+	app, err := appplatform.NewTestApp()
+	if err != nil {
+		t.Fatalf("NewTestApp returned error: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/postcards/random", nil)
+	res := httptest.NewRecorder()
+	app.Router().ServeHTTP(res, req)
+
+	if res.Code == http.StatusBadRequest {
+		t.Fatalf("expected random route handling, got detail route bad request body=%s", res.Body.String())
+	}
+	payload := decodeContractPayload(t, res.Body.Bytes())
+	if payload["message"] == "明信片 ID 无效" {
+		t.Fatalf("expected random route handling, got detail route message")
+	}
+}
+
 func contractRegisterAndLogin(t *testing.T, app *appplatform.App, username, email string) string {
 	t.Helper()
 

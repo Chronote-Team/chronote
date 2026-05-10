@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	postcardsdomain "chronote-refactor/internal/modules/postcards/domain"
+	"chronote-refactor/internal/shared/errs"
 )
 
 func TestValidatePostcardTitle(t *testing.T) {
@@ -91,4 +94,63 @@ func TestCanAccessPostcard(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetRandomReturnsOnlyPublicPostcardsForAnonymousUser(t *testing.T) {
+	service := NewService(nil, nil, nil)
+	createPostcardForTest(t, service, 1, "Private Card", "private")
+	createPostcardForTest(t, service, 2, "Public Card", "public")
+
+	postcard, err := service.GetRandom(0)
+	if err != nil {
+		t.Fatalf("expected random postcard, got error %v", err)
+	}
+	if postcard.Visibility != "public" {
+		t.Fatalf("expected public postcard for anonymous user, got %q", postcard.Visibility)
+	}
+}
+
+func TestGetRandomIncludesOwnedPrivatePostcardsForAuthenticatedUser(t *testing.T) {
+	service := NewService(nil, nil, nil)
+	createPostcardForTest(t, service, 1, "Other Private Card", "private")
+	owned := createPostcardForTest(t, service, 2, "Owned Private Card", "private")
+
+	postcard, err := service.GetRandom(2)
+	if err != nil {
+		t.Fatalf("expected random postcard, got error %v", err)
+	}
+	if postcard.ID != owned.ID {
+		t.Fatalf("expected owned private postcard %d, got %d", owned.ID, postcard.ID)
+	}
+}
+
+func TestGetRandomReturnsNotFoundWhenNoPostcardsAreAccessible(t *testing.T) {
+	service := NewService(nil, nil, nil)
+	createPostcardForTest(t, service, 1, "Other Private Card", "private")
+
+	postcard, err := service.GetRandom(0)
+	if postcard != nil {
+		t.Fatalf("expected nil postcard, got %#v", postcard)
+	}
+	appErr, ok := err.(*errs.AppError)
+	if !ok {
+		t.Fatalf("expected AppError, got %T %v", err, err)
+	}
+	if appErr.Status != 404 || appErr.Message != "明信片不存在" {
+		t.Fatalf("expected not found postcard error, got status=%d message=%q", appErr.Status, appErr.Message)
+	}
+}
+
+func createPostcardForTest(t *testing.T, service *Service, userID uint, title, visibility string) *postcardsdomain.Postcard {
+	t.Helper()
+
+	postcard, err := service.Create(userID, CreateInput{
+		Title:      title,
+		Content:    json.RawMessage(`{"blocks":[{"type":"text","value":"hello"}]}`),
+		Visibility: visibility,
+	})
+	if err != nil {
+		t.Fatalf("Create returned error: %v", err)
+	}
+	return postcard
 }
