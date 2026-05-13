@@ -1,0 +1,202 @@
+openapi: 3.0.3
+info:
+  title: Chronote Random Postcard Contract
+  version: 1.0.0
+paths:
+  /v1/postcards/random:
+    get:
+      summary: Return one random postcard accessible to the current caller
+      description: Authentication is optional. Anonymous callers can receive public postcards only. Signed-in callers can receive public postcards and their own postcards.
+      security:
+        - bearerAuth: []
+        - {}
+      responses:
+        "200":
+          description: Random accessible postcard returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PostcardSuccessEnvelope"
+              examples:
+                success:
+                  value:
+                    message: 获取随机明信片成功
+                    data:
+                      id: 1
+                      title: Example Postcard
+                      content:
+                        blocks:
+                          - type: text
+                            value: Hello
+                      visibility: public
+                      author_id: 1
+                      author:
+                        id: 1
+                        username: alice
+                        display_name: Alice
+                        avatar: https://example.com/avatar.png
+                      medias:
+                        - id: 10
+                          postcard_id: 1
+                          type: image
+                          url: https://cdn.example.com/postcards/1.jpg
+                          thumbnail_url: https://cdn.example.com/postcards/1-thumb.jpg
+                          original_width: 1280
+                          original_height: 720
+                          duration: 0
+                          file_size: 2048
+                          position: 1
+                          group: gallery
+                          created_at: "2026-05-10 12:00:00"
+                          updated_at: "2026-05-10 12:00:00"
+                      created_at: "2026-05-10 12:00:00"
+                      updated_at: "2026-05-10 12:00:00"
+        "404":
+          description: No accessible postcard exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NullEnvelope"
+              examples:
+                notFound:
+                  value:
+                    message: 明信片不存在
+                    data: null
+        "500":
+          description: Random postcard retrieval failed unexpectedly
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NullEnvelope"
+              examples:
+                internal:
+                  value:
+                    message: 获取随机明信片失败
+                    data: null
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    PostcardSuccessEnvelope:
+      type: object
+      required:
+        - message
+        - data
+      properties:
+        message:
+          type: string
+          enum:
+            - 获取随机明信片成功
+        data:
+          $ref: "#/components/schemas/Postcard"
+    NullEnvelope:
+      type: object
+      required:
+        - message
+        - data
+      properties:
+        message:
+          type: string
+        data:
+          nullable: true
+    Postcard:
+      type: object
+      required:
+        - id
+        - title
+        - content
+        - visibility
+        - author_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        title:
+          type: string
+        content:
+          type: object
+          additionalProperties: true
+        visibility:
+          type: string
+          enum:
+            - public
+            - private
+        author_id:
+          type: integer
+          minimum: 1
+        author:
+          $ref: "#/components/schemas/PostcardAuthor"
+        medias:
+          type: array
+          items:
+            $ref: "#/components/schemas/PostcardMedia"
+        created_at:
+          type: string
+          example: "2026-05-10 12:00:00"
+        updated_at:
+          type: string
+          example: "2026-05-10 12:00:00"
+    PostcardAuthor:
+      type: object
+      required:
+        - id
+        - username
+        - display_name
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        username:
+          type: string
+        display_name:
+          type: string
+        avatar:
+          type: string
+    PostcardMedia:
+      type: object
+      required:
+        - id
+        - postcard_id
+        - type
+        - url
+        - file_size
+        - position
+        - group
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        postcard_id:
+          type: integer
+          minimum: 1
+        type:
+          type: string
+        url:
+          type: string
+        thumbnail_url:
+          type: string
+        original_width:
+          type: integer
+        original_height:
+          type: integer
+        duration:
+          type: integer
+        file_size:
+          type: integer
+        position:
+          type: integer
+        group:
+          type: string
+        created_at:
+          type: string
+          example: "2026-05-10 12:00:00"
+        updated_at:
+          type: string
+          example: "2026-05-10 12:00:00"

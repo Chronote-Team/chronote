@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"math/rand"
 	"sort"
 	"strings"
 	"time"
@@ -157,6 +158,21 @@ func (s *Service) GetDetail(userID, postcardID uint) (*postcardsdomain.Postcard,
 		return nil, errs.Forbidden("无权限访问该明信片")
 	}
 	return s.attachRelations(postcard)
+}
+
+func (s *Service) GetRandom(userID uint) (*postcardsdomain.Postcard, error) {
+	postcard, err := s.repo.FindRandomAccessible(userID)
+	if err != nil {
+		return nil, errs.Internal("获取随机明信片失败")
+	}
+	if postcard == nil {
+		return nil, errs.NotFound("明信片不存在")
+	}
+	postcard, err = s.attachRelations(postcard)
+	if err != nil {
+		return nil, errs.Internal("获取随机明信片失败")
+	}
+	return postcard, nil
 }
 
 func (s *Service) EnsureOwner(userID, postcardID uint) (*postcardsdomain.Postcard, error) {
@@ -360,6 +376,20 @@ func (r *memoryRepository) FindByID(id uint) (*postcardsdomain.Postcard, error) 
 		return nil, nil
 	}
 	copy := *postcard
+	return &copy, nil
+}
+
+func (r *memoryRepository) FindRandomAccessible(userID uint) (*postcardsdomain.Postcard, error) {
+	candidates := make([]*postcardsdomain.Postcard, 0, len(r.postcardsByID))
+	for _, postcard := range r.postcardsByID {
+		if canAccess(userID, postcard.AuthorID, postcard.Visibility) {
+			candidates = append(candidates, postcard)
+		}
+	}
+	if len(candidates) == 0 {
+		return nil, nil
+	}
+	copy := *candidates[rand.Intn(len(candidates))]
 	return &copy, nil
 }
 

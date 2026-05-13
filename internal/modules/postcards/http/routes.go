@@ -3,6 +3,7 @@ package http
 import "github.com/gin-gonic/gin"
 
 func RegisterPublicRoutes(group *gin.RouterGroup, handler *Handler) {
+	group.GET("/random", handler.GetRandomPostcard)
 	group.GET("", handler.GetPostcards)
 	group.GET("/:id", handler.GetPostcardDetail)
 }
