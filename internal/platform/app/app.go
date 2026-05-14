@@ -115,7 +115,7 @@ func newProductionApp(cfg *platformconfig.Config, database *gorm.DB, redisClient
 	}
 	if cfg.AI.Enabled {
 		if cfg.AI.Provider == "openai" || cfg.AI.Provider == "" {
-			analysisDeps.AI = postcardaiai.NewOpenAIResponsesClient(cfg.AI.OpenAIAPIKey, cfg.AI.Model, "", time.Duration(cfg.AI.Timeout)*time.Second)
+			analysisDeps.AI = postcardaiai.NewOpenAIResponsesClient(cfg.AI.OpenAIAPIKey, cfg.AI.Model, cfg.AI.Endpoint, time.Duration(cfg.AI.Timeout)*time.Second)
 		}
 		if cfg.S3.Endpoint != "" && cfg.S3.BucketName != "" {
 			s3Client, err := platforms3.NewClient(cfg)

@@ -118,6 +118,7 @@ services:
       S3_USE_SSL: "false"
       AI_ENABLED: ${AI_ENABLED:-false}
       AI_PROVIDER: ${AI_PROVIDER:-openai}
+      AI_ENDPOINT: ${AI_ENDPOINT:-}
       AI_ENDPOINT_TYPE: ${AI_ENDPOINT_TYPE:-responses}
       AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}
       AI_TIMEOUT: ${AI_TIMEOUT:-30}

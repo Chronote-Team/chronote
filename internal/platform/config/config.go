@@ -45,6 +45,7 @@ type Config struct {
 	AI struct {
 		Enabled      bool
 		Provider     string
+		Endpoint     string
 		EndpointType string
 		Model        string
 		Timeout      int64
@@ -112,6 +113,7 @@ func Load() (*Config, error) {
 
 	bindEnv("ai.enabled", "AI_ENABLED")
 	bindEnv("ai.provider", "AI_PROVIDER")
+	bindEnv("ai.endpoint", "AI_ENDPOINT")
 	bindEnv("ai.endpointtype", "AI_ENDPOINT_TYPE")
 	bindEnv("ai.model", "AI_MODEL")
 	bindEnv("ai.timeout", "AI_TIMEOUT")
