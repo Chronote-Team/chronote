@@ -3,6 +3,7 @@ package s3
 import (
 	"context"
 	"strings"
+	"time"
 
 	platformconfig "chronote-refactor/internal/platform/config"
 
@@ -37,4 +38,26 @@ func NewClient(cfg *platformconfig.Config) (*s3lib.Client, error) {
 		}
 		options.UsePathStyle = true
 	}), nil
+}
+
+type Presigner struct {
+	client *s3lib.PresignClient
+	bucket string
+}
+
+func NewPresigner(client *s3lib.Client, bucket string) *Presigner {
+	return &Presigner{client: s3lib.NewPresignClient(client), bucket: bucket}
+}
+
+func (p *Presigner) PresignGetObject(ctx context.Context, objectKey string, ttl time.Duration) (string, error) {
+	output, err := p.client.PresignGetObject(ctx, &s3lib.GetObjectInput{
+		Bucket: &p.bucket,
+		Key:    &objectKey,
+	}, func(options *s3lib.PresignOptions) {
+		options.Expires = ttl
+	})
+	if err != nil {
+		return "", err
+	}
+	return output.URL, nil
 }

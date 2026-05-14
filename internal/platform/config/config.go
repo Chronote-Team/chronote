@@ -42,6 +42,14 @@ type Config struct {
 		MaxVideoSize int64
 		MaxAudioSize int64
 	}
+	AI struct {
+		Enabled      bool
+		Provider     string
+		EndpointType string
+		Model        string
+		Timeout      int64
+		OpenAIAPIKey string
+	}
 }
 
 var AppConfig *Config
@@ -69,6 +77,10 @@ func Load() (*Config, error) {
 	viper.SetDefault("media.maximagesize", int64(10*1024*1024))
 	viper.SetDefault("media.maxvideosize", int64(200*1024*1024))
 	viper.SetDefault("media.maxaudiosize", int64(50*1024*1024))
+	viper.SetDefault("ai.enabled", false)
+	viper.SetDefault("ai.provider", "openai")
+	viper.SetDefault("ai.endpointtype", "responses")
+	viper.SetDefault("ai.timeout", int64(30))
 
 	bindEnv("database.host", "POSTGRES_HOST")
 	bindEnv("database.port", "POSTGRES_PORT")
@@ -97,6 +109,13 @@ func Load() (*Config, error) {
 	bindEnv("media.maximagesize", "MEDIA_MAX_IMAGE_SIZE")
 	bindEnv("media.maxvideosize", "MEDIA_MAX_VIDEO_SIZE")
 	bindEnv("media.maxaudiosize", "MEDIA_MAX_AUDIO_SIZE")
+
+	bindEnv("ai.enabled", "AI_ENABLED")
+	bindEnv("ai.provider", "AI_PROVIDER")
+	bindEnv("ai.endpointtype", "AI_ENDPOINT_TYPE")
+	bindEnv("ai.model", "AI_MODEL")
+	bindEnv("ai.timeout", "AI_TIMEOUT")
+	bindEnv("ai.openaiapikey", "OPENAI_API_KEY")
 
 	var configFileNotFound viper.ConfigFileNotFoundError
 	if err := viper.ReadInConfig(); err != nil && !errors.As(err, &configFileNotFound) {

@@ -116,6 +116,12 @@ services:
       S3_BUCKET: ${S3_BUCKET:-chronote-avatars}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_USE_SSL: "false"
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      AI_ENDPOINT_TYPE: ${AI_ENDPOINT_TYPE:-responses}
+      AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}
+      AI_TIMEOUT: ${AI_TIMEOUT:-30}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - "58080:8080"
     restart: unless-stopped

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"mime/multipart"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	mediadomain "chronote-refactor/internal/modules/media/domain"
+	postcardaiapp "chronote-refactor/internal/modules/postcardai/app"
 	"chronote-refactor/internal/shared/errs"
 )
 
@@ -21,6 +23,7 @@ type Service struct {
 	repo      Repository
 	storage   Storage
 	processor ImageProcessor
+	ai        AnalysisEnqueuer
 }
 
 func NewService(repo Repository, storage Storage, processor ImageProcessor) *Service {
@@ -33,7 +36,14 @@ func NewService(repo Repository, storage Storage, processor ImageProcessor) *Ser
 	if processor == nil {
 		processor = noopImageProcessor{}
 	}
-	return &Service{repo: repo, storage: storage, processor: processor}
+	return &Service{repo: repo, storage: storage, processor: processor, ai: postcardaiapp.NoopEnqueuer{}}
+}
+
+func (s *Service) SetAnalysisEnqueuer(enqueuer AnalysisEnqueuer) {
+	if enqueuer == nil {
+		enqueuer = postcardaiapp.NoopEnqueuer{}
+	}
+	s.ai = enqueuer
 }
 
 func (s *Service) Repository() Repository {
@@ -86,6 +96,7 @@ func (s *Service) UploadBatch(postcardID uint, files []*multipart.FileHeader, me
 		}
 		uploaded = append(uploaded, *media)
 	}
+	s.enqueueAnalysis(postcardID)
 	return uploaded, nil
 }
 
@@ -125,6 +136,7 @@ func (s *Service) Reorder(postcardID uint, mediaIDs []uint) error {
 	if err := s.repo.Reorder(postcardID, mediaIDs); err != nil {
 		return errs.Internal("更新媒体排序失败")
 	}
+	s.enqueueAnalysis(postcardID)
 	return nil
 }
 
@@ -132,7 +144,19 @@ func (s *Service) Delete(postcardID, mediaID uint) error {
 	if err := s.repo.Delete(postcardID, mediaID); err != nil {
 		return errs.NotFound("媒体不存在")
 	}
+	s.enqueueAnalysis(postcardID)
 	return nil
+}
+
+func (s *Service) enqueueAnalysis(postcardID uint) {
+	if s.ai == nil || postcardID == 0 {
+		return
+	}
+	_, _ = s.ai.EnqueuePostcardAnalysis(context.Background(), postcardaiapp.EnqueueInput{
+		PostcardID:  postcardID,
+		Reason:      postcardaiapp.EnqueueReasonMediaChange,
+		RequestedBy: "system",
+	})
 }
 
 func validateGroupCompatibility(mediaType, group string) error {

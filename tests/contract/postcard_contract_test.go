@@ -33,6 +33,7 @@ func TestPostcardContractPreservesVisibilityAndEnvelope(t *testing.T) {
 	if publicPayload["message"] != "获取明信片详情成功" {
 		t.Fatalf("unexpected public detail message: %#v", publicPayload["message"])
 	}
+	assertNoAnalysisFields(t, publicPayload["data"])
 
 	listReq := httptest.NewRequest(http.MethodGet, "/v1/postcards", nil)
 	listRes := httptest.NewRecorder()
@@ -58,6 +59,7 @@ func TestPostcardContractPreservesVisibilityAndEnvelope(t *testing.T) {
 	if len(items) != 1 {
 		t.Fatalf("expected only public postcard in anonymous list, got %d", len(items))
 	}
+	assertNoAnalysisFields(t, items[0])
 
 	privateReq := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/v1/postcards/%d", privateID), nil)
 	privateRes := httptest.NewRecorder()
@@ -248,6 +250,20 @@ func contractCreatePostcard(t *testing.T, app *appplatform.App, accessToken, tit
 		t.Fatalf("expected postcard id, got %#v", data["id"])
 	}
 	return uint(id)
+}
+
+func assertNoAnalysisFields(t *testing.T, value any) {
+	t.Helper()
+
+	object, ok := value.(map[string]any)
+	if !ok {
+		t.Fatalf("expected object while checking analysis fields, got %#v", value)
+	}
+	for _, field := range []string{"analysis", "analysis_status", "analysis_result", "ai_analysis", "postcard_analysis"} {
+		if _, exists := object[field]; exists {
+			t.Fatalf("public postcard payload leaked %q field: %#v", field, object)
+		}
+	}
 }
 
 func decodeContractPayload(t *testing.T, body []byte) map[string]any {

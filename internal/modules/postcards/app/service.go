@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"math/rand"
 	"sort"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	mediadomain "chronote-refactor/internal/modules/media/domain"
+	postcardaiapp "chronote-refactor/internal/modules/postcardai/app"
 	postcardsdomain "chronote-refactor/internal/modules/postcards/domain"
 	"chronote-refactor/internal/shared/errs"
 	sharedpagination "chronote-refactor/internal/shared/pagination"
@@ -42,6 +44,7 @@ type Service struct {
 	repo    Repository
 	authors AuthorRepository
 	medias  MediaRepository
+	ai      AnalysisEnqueuer
 }
 
 func NewService(repo Repository, authors AuthorRepository, medias MediaRepository) *Service {
@@ -51,7 +54,14 @@ func NewService(repo Repository, authors AuthorRepository, medias MediaRepositor
 	if medias == nil {
 		medias = noopMediaRepository{}
 	}
-	return &Service{repo: repo, authors: authors, medias: medias}
+	return &Service{repo: repo, authors: authors, medias: medias, ai: postcardaiapp.NoopEnqueuer{}}
+}
+
+func (s *Service) SetAnalysisEnqueuer(enqueuer AnalysisEnqueuer) {
+	if enqueuer == nil {
+		enqueuer = postcardaiapp.NoopEnqueuer{}
+	}
+	s.ai = enqueuer
 }
 
 func (s *Service) Create(userID uint, input CreateInput) (*postcardsdomain.Postcard, error) {
@@ -83,6 +93,7 @@ func (s *Service) Create(userID uint, input CreateInput) (*postcardsdomain.Postc
 	if err := s.repo.Create(postcard); err != nil {
 		return nil, errs.Internal("创建明信片失败")
 	}
+	s.enqueueAnalysis(postcard.ID, postcardaiapp.EnqueueReasonCreate)
 	return s.attachRelations(postcard)
 }
 
@@ -236,6 +247,7 @@ func (s *Service) Update(userID, postcardID uint, input UpdateInput) error {
 	if err := s.repo.Update(postcard); err != nil {
 		return errs.Internal("更新明信片失败")
 	}
+	s.enqueueAnalysis(postcard.ID, postcardaiapp.EnqueueReasonUpdate)
 	return nil
 }
 
@@ -257,6 +269,17 @@ func (s *Service) Delete(userID, postcardID uint) error {
 		return errs.Internal("删除明信片失败")
 	}
 	return nil
+}
+
+func (s *Service) enqueueAnalysis(postcardID uint, reason postcardaiapp.EnqueueReason) {
+	if s.ai == nil || postcardID == 0 {
+		return
+	}
+	_, _ = s.ai.EnqueuePostcardAnalysis(context.Background(), postcardaiapp.EnqueueInput{
+		PostcardID:  postcardID,
+		Reason:      reason,
+		RequestedBy: "system",
+	})
 }
 
 func validateTitle(input string) (string, error) {

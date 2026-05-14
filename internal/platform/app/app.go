@@ -9,6 +9,9 @@ import (
 	mediaapp "chronote-refactor/internal/modules/media/app"
 	mediahttp "chronote-refactor/internal/modules/media/http"
 	mediainfra "chronote-refactor/internal/modules/media/infra"
+	postcardaiapp "chronote-refactor/internal/modules/postcardai/app"
+	postcardaiinfra "chronote-refactor/internal/modules/postcardai/infra"
+	postcardaiai "chronote-refactor/internal/modules/postcardai/infra/ai"
 	postcardsapp "chronote-refactor/internal/modules/postcards/app"
 	postcardshttp "chronote-refactor/internal/modules/postcards/http"
 	postcardsinfra "chronote-refactor/internal/modules/postcards/infra"
@@ -21,6 +24,7 @@ import (
 	platformhttp "chronote-refactor/internal/platform/http"
 	platformredis "chronote-refactor/internal/platform/redis"
 	platforms3 "chronote-refactor/internal/platform/s3"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	redislib "github.com/redis/go-redis/v9"
@@ -53,6 +57,11 @@ func NewTestApp() (*App, error) {
 	authService := authapp.NewService(userService.Repository(), passwordService, tokenServiceAdapter{jwtService})
 	mediaService := mediaapp.NewService(nil, nil, nil)
 	postcardService := postcardsapp.NewService(nil, userService.Repository(), mediaService.Repository())
+	analysisService := postcardaiapp.NewService(postcardaiapp.Dependencies{
+		Enabled: false,
+	})
+	postcardService.SetAnalysisEnqueuer(analysisService)
+	mediaService.SetAnalysisEnqueuer(analysisService)
 	blacklist := authapp.NewMemoryBlacklist()
 	authService.SetBlacklist(blacklist)
 	middleware := authhttp.NewMiddleware(tokenServiceAdapter{jwtService}, blacklist)
@@ -95,6 +104,30 @@ func newProductionApp(cfg *platformconfig.Config, database *gorm.DB, redisClient
 	mediaRepo := mediainfra.NewGormRepository(database)
 	mediaService := mediaapp.NewService(mediaRepo, s3Storage, mediainfra.NewImageProcessor())
 	postcardService := postcardsapp.NewService(postcardsinfra.NewGormRepository(database), usersRepo, mediaRepo)
+	analysisRepo := postcardaiinfra.NewGormRepository(database)
+	analysisDeps := postcardaiapp.Dependencies{
+		Jobs:      analysisRepo,
+		Results:   analysisRepo,
+		Postcards: postcardsapp.NewSourceAdapter(postcardsinfra.NewGormRepository(database)),
+		Media:     mediaapp.NewSourceAdapter(mediaRepo),
+		Enabled:   cfg.AI.Enabled,
+		Model:     cfg.AI.Model,
+	}
+	if cfg.AI.Enabled {
+		if cfg.AI.Provider == "openai" || cfg.AI.Provider == "" {
+			analysisDeps.AI = postcardaiai.NewOpenAIResponsesClient(cfg.AI.OpenAIAPIKey, cfg.AI.Model, "", time.Duration(cfg.AI.Timeout)*time.Second)
+		}
+		if cfg.S3.Endpoint != "" && cfg.S3.BucketName != "" {
+			s3Client, err := platforms3.NewClient(cfg)
+			if err != nil {
+				return nil, err
+			}
+			analysisDeps.Storage = platforms3.NewPresigner(s3Client, cfg.S3.BucketName)
+		}
+	}
+	analysisService := postcardaiapp.NewService(analysisDeps)
+	postcardService.SetAnalysisEnqueuer(analysisService)
+	mediaService.SetAnalysisEnqueuer(analysisService)
 	userService := usersapp.NewService(usersRepo, passwordService)
 	authService := authapp.NewService(usersRepo, passwordService, tokenServiceAdapter{jwtService})
 	authService.SetBlacklist(blacklist)
