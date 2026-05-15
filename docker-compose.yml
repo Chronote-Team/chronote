@@ -143,6 +143,56 @@ services:
     networks:
       - chronote_net
 
+  worker:
+    image: localhost/chronote:latest
+    container_name: chronote-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+      s3-init:
+        condition: service_completed_successfully
+    command: ["/app/chronote-worker"]
+    environment:
+      GIN_MODE: release
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-chronote}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_this_postgres_password}
+      POSTGRES_DB: ${POSTGRES_DB:-chronote}
+      POSTGRES_SSLMODE: disable
+      POSTGRES_TIMEZONE: Asia/Shanghai
+      JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:-change_this_to_a_strong_jwt_signing_key}
+      ACCESS_TOKEN_EXPIRE: ${ACCESS_TOKEN_EXPIRE:-7200}
+      REFRESH_TOKEN_EXPIRE: ${REFRESH_TOKEN_EXPIRE:-1814400}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change_this_redis_password}
+      REDIS_DB: "0"
+      S3_ENDPOINT: ${S3_ENDPOINT:-rustfs:9000}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-rustfsadmin}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-rustfsadmin}
+      S3_BUCKET: ${S3_BUCKET:-chronote-avatars}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_USE_SSL: "false"
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      AI_ENDPOINT: ${AI_ENDPOINT:-}
+      AI_ENDPOINT_TYPE: ${AI_ENDPOINT_TYPE:-responses}
+      AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}
+      AI_TIMEOUT: ${AI_TIMEOUT:-30}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AI_WORKER_ID: ${AI_WORKER_ID:-worker-1}
+      AI_WORKER_IDLE_SLEEP: ${AI_WORKER_IDLE_SLEEP:-2s}
+      AI_WORKER_ERROR_SLEEP: ${AI_WORKER_ERROR_SLEEP:-5s}
+      AI_WORKER_RUN_ONCE: ${AI_WORKER_RUN_ONCE:-false}
+    restart: unless-stopped
+    networks:
+      - chronote_net
+
 networks:
   chronote_net:
     driver: bridge
