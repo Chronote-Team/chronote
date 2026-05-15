@@ -51,6 +51,12 @@ type Config struct {
 		Timeout      int64
 		OpenAIAPIKey string
 	}
+	AIWorker struct {
+		ID         string
+		IdleSleep  string
+		ErrorSleep string
+		RunOnce    bool
+	}
 }
 
 var AppConfig *Config
@@ -82,6 +88,10 @@ func Load() (*Config, error) {
 	viper.SetDefault("ai.provider", "openai")
 	viper.SetDefault("ai.endpointtype", "responses")
 	viper.SetDefault("ai.timeout", int64(30))
+	viper.SetDefault("aiworker.id", "worker-1")
+	viper.SetDefault("aiworker.idlesleep", "2s")
+	viper.SetDefault("aiworker.errorsleep", "5s")
+	viper.SetDefault("aiworker.runonce", false)
 
 	bindEnv("database.host", "POSTGRES_HOST")
 	bindEnv("database.port", "POSTGRES_PORT")
@@ -118,6 +128,11 @@ func Load() (*Config, error) {
 	bindEnv("ai.model", "AI_MODEL")
 	bindEnv("ai.timeout", "AI_TIMEOUT")
 	bindEnv("ai.openaiapikey", "OPENAI_API_KEY")
+
+	bindEnv("aiworker.id", "AI_WORKER_ID")
+	bindEnv("aiworker.idlesleep", "AI_WORKER_IDLE_SLEEP")
+	bindEnv("aiworker.errorsleep", "AI_WORKER_ERROR_SLEEP")
+	bindEnv("aiworker.runonce", "AI_WORKER_RUN_ONCE")
 
 	var configFileNotFound viper.ConfigFileNotFoundError
 	if err := viper.ReadInConfig(); err != nil && !errors.As(err, &configFileNotFound) {

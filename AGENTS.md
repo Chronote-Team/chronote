@@ -53,3 +53,9 @@ Go 1.25: Follow standard conventions
 - Prefer the offline-safe test command above in this workspace because network access may be restricted while Go modules are already available in the local cache.
 - US3 cutover verification uses isolated Podman containers on a dedicated network such as `chronote_us3_test`; do not run those tests on the default bridge or alongside unrelated local service containers.
 <!-- MANUAL ADDITIONS END -->
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan:
+`specs/feature/ai-understanding-worker/plan.md`
+<!-- SPECKIT END -->
