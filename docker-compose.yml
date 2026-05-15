@@ -155,7 +155,7 @@ services:
         condition: service_started
       s3-init:
         condition: service_completed_successfully
-    command: ["/app/chronote-worker"]
+    entrypoint: ["/app/chronote-worker"]
     environment:
       GIN_MODE: release
       POSTGRES_HOST: postgres

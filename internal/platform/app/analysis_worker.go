@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	mediaapp "chronote-refactor/internal/modules/media/app"
@@ -84,12 +85,23 @@ func NewPostcardAIService(cfg *platformconfig.Config, database *gorm.DB, mediaRe
 	}
 	if cfg.AI.Enabled {
 		if cfg.AI.Provider == "" || cfg.AI.Provider == "openai" {
-			deps.AI = postcardaiai.NewOpenAIResponsesClient(
-				cfg.AI.OpenAIAPIKey,
-				cfg.AI.Model,
-				cfg.AI.Endpoint,
-				time.Duration(cfg.AI.Timeout)*time.Second,
-			)
+			timeout := time.Duration(cfg.AI.Timeout) * time.Second
+			switch normalizeAIEndpointType(cfg.AI.EndpointType) {
+			case "chat_completions":
+				deps.AI = postcardaiai.NewOpenAIChatCompletionsClient(
+					cfg.AI.OpenAIAPIKey,
+					cfg.AI.Model,
+					cfg.AI.Endpoint,
+					timeout,
+				)
+			default:
+				deps.AI = postcardaiai.NewOpenAIResponsesClient(
+					cfg.AI.OpenAIAPIKey,
+					cfg.AI.Model,
+					cfg.AI.Endpoint,
+					timeout,
+				)
+			}
 		}
 		if cfg.S3.Endpoint != "" && cfg.S3.BucketName != "" {
 			s3Client, err := platforms3.NewClient(cfg)
@@ -100,6 +112,16 @@ func NewPostcardAIService(cfg *platformconfig.Config, database *gorm.DB, mediaRe
 		}
 	}
 	return postcardaiapp.NewService(deps), nil
+}
+
+func normalizeAIEndpointType(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "chat", "chat-completions", "chat_completions":
+		return "chat_completions"
+	default:
+		return "responses"
+	}
 }
 
 func WorkerOptionsFromConfig(cfg *platformconfig.Config) WorkerOptions {

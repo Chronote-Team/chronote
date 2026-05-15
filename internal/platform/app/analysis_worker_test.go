@@ -112,3 +112,14 @@ func TestWorkerOptionsFromConfigUsesDefaultsAndEnvValues(t *testing.T) {
 		t.Fatalf("unexpected parsed worker options: %#v", opts)
 	}
 }
+
+func TestNormalizeAIEndpointTypeSupportsChatCompletionsAliases(t *testing.T) {
+	for _, input := range []string{"chat", "chat-completions", "chat_completions", " Chat_Completions "} {
+		if got := normalizeAIEndpointType(input); got != "chat_completions" {
+			t.Fatalf("normalizeAIEndpointType(%q) = %q, want chat_completions", input, got)
+		}
+	}
+	if got := normalizeAIEndpointType("responses"); got != "responses" {
+		t.Fatalf("normalizeAIEndpointType(responses) = %q, want responses", got)
+	}
+}

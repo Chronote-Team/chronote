@@ -67,7 +67,7 @@ func TestComposeDefinesWorkerServiceWithoutPorts(t *testing.T) {
 	for _, expected := range []string{
 		"worker:",
 		"container_name: chronote-worker",
-		`command: ["/app/chronote-worker"]`,
+		`entrypoint: ["/app/chronote-worker"]`,
 		"AI_WORKER_ID:",
 		"AI_WORKER_IDLE_SLEEP:",
 		"AI_WORKER_ERROR_SLEEP:",

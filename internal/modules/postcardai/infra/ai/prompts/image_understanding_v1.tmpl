@@ -1,2 +1,9 @@
-Analyze the private postcard image and return only structured JSON that matches image_understanding_v1.
+Analyze the private postcard image.
 
+Return only one JSON object matching image_understanding_v1:
+{
+  "image_type": "photo, illustration, document, or unknown",
+  "caption": "short private image caption",
+  "confidence": 0.0,
+  "uncertainty": "optional uncertainty note"
+}
