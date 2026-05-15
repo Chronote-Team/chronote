@@ -84,7 +84,7 @@ if [ -z "$FEATURE_DESCRIPTION" ]; then
 fi
 
 # Trim whitespace and validate description is not empty (e.g., user passed only whitespace)
-FEATURE_DESCRIPTION=$(echo "$FEATURE_DESCRIPTION" | xargs)
+FEATURE_DESCRIPTION=$(echo "$FEATURE_DESCRIPTION" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
 if [ -z "$FEATURE_DESCRIPTION" ]; then
     echo "Error: Feature description cannot be empty or contain only whitespace" >&2
     exit 1
@@ -337,8 +337,11 @@ if [ "$DRY_RUN" != true ]; then
                     if [ "$current_branch" = "$BRANCH_NAME" ]; then
                         :
                     # Otherwise switch to the existing branch instead of failing.
-                    elif ! git checkout "$BRANCH_NAME" 2>/dev/null; then
+                    elif ! switch_branch_error=$(git checkout -q "$BRANCH_NAME" 2>&1); then
                         >&2 echo "Error: Failed to switch to existing branch '$BRANCH_NAME'. Please resolve any local changes or conflicts and try again."
+                        if [ -n "$switch_branch_error" ]; then
+                            >&2 printf '%s\n' "$switch_branch_error"
+                        fi
                         exit 1
                     fi
                 elif [ "$USE_TIMESTAMP" = true ]; then

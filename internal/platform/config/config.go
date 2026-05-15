@@ -42,6 +42,21 @@ type Config struct {
 		MaxVideoSize int64
 		MaxAudioSize int64
 	}
+	AI struct {
+		Enabled      bool
+		Provider     string
+		Endpoint     string
+		EndpointType string
+		Model        string
+		Timeout      int64
+		OpenAIAPIKey string
+	}
+	AIWorker struct {
+		ID         string
+		IdleSleep  string
+		ErrorSleep string
+		RunOnce    bool
+	}
 }
 
 var AppConfig *Config
@@ -69,6 +84,14 @@ func Load() (*Config, error) {
 	viper.SetDefault("media.maximagesize", int64(10*1024*1024))
 	viper.SetDefault("media.maxvideosize", int64(200*1024*1024))
 	viper.SetDefault("media.maxaudiosize", int64(50*1024*1024))
+	viper.SetDefault("ai.enabled", false)
+	viper.SetDefault("ai.provider", "openai")
+	viper.SetDefault("ai.endpointtype", "responses")
+	viper.SetDefault("ai.timeout", int64(30))
+	viper.SetDefault("aiworker.id", "worker-1")
+	viper.SetDefault("aiworker.idlesleep", "2s")
+	viper.SetDefault("aiworker.errorsleep", "5s")
+	viper.SetDefault("aiworker.runonce", false)
 
 	bindEnv("database.host", "POSTGRES_HOST")
 	bindEnv("database.port", "POSTGRES_PORT")
@@ -97,6 +120,19 @@ func Load() (*Config, error) {
 	bindEnv("media.maximagesize", "MEDIA_MAX_IMAGE_SIZE")
 	bindEnv("media.maxvideosize", "MEDIA_MAX_VIDEO_SIZE")
 	bindEnv("media.maxaudiosize", "MEDIA_MAX_AUDIO_SIZE")
+
+	bindEnv("ai.enabled", "AI_ENABLED")
+	bindEnv("ai.provider", "AI_PROVIDER")
+	bindEnv("ai.endpoint", "AI_ENDPOINT")
+	bindEnv("ai.endpointtype", "AI_ENDPOINT_TYPE")
+	bindEnv("ai.model", "AI_MODEL")
+	bindEnv("ai.timeout", "AI_TIMEOUT")
+	bindEnv("ai.openaiapikey", "OPENAI_API_KEY")
+
+	bindEnv("aiworker.id", "AI_WORKER_ID")
+	bindEnv("aiworker.idlesleep", "AI_WORKER_IDLE_SLEEP")
+	bindEnv("aiworker.errorsleep", "AI_WORKER_ERROR_SLEEP")
+	bindEnv("aiworker.runonce", "AI_WORKER_RUN_ONCE")
 
 	var configFileNotFound viper.ConfigFileNotFoundError
 	if err := viper.ReadInConfig(); err != nil && !errors.As(err, &configFileNotFound) {

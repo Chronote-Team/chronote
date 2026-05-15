@@ -1,10 +1,12 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
 
+	postcardaiapp "chronote-refactor/internal/modules/postcardai/app"
 	postcardsdomain "chronote-refactor/internal/modules/postcards/domain"
 	"chronote-refactor/internal/shared/errs"
 )
@@ -37,6 +39,25 @@ func TestValidatePostcardTitle(t *testing.T) {
 				t.Fatalf("expected %q, got %q", tt.want, got)
 			}
 		})
+	}
+}
+
+func TestCreateAndUpdateEnqueuePostcardAnalysis(t *testing.T) {
+	service := NewService(nil, nil, nil)
+	enqueuer := &recordingAnalysisEnqueuer{}
+	service.SetAnalysisEnqueuer(enqueuer)
+
+	postcard := createPostcardForTest(t, service, 1, "Analysis Card", "private")
+	if len(enqueuer.inputs) != 1 || enqueuer.inputs[0].Reason != postcardaiapp.EnqueueReasonCreate {
+		t.Fatalf("expected create enqueue, got %#v", enqueuer.inputs)
+	}
+
+	title := "Updated"
+	if err := service.Update(1, postcard.ID, UpdateInput{Title: &title}); err != nil {
+		t.Fatalf("Update returned error: %v", err)
+	}
+	if len(enqueuer.inputs) != 2 || enqueuer.inputs[1].Reason != postcardaiapp.EnqueueReasonUpdate {
+		t.Fatalf("expected update enqueue, got %#v", enqueuer.inputs)
 	}
 }
 
@@ -153,4 +174,13 @@ func createPostcardForTest(t *testing.T, service *Service, userID uint, title, v
 		t.Fatalf("Create returned error: %v", err)
 	}
 	return postcard
+}
+
+type recordingAnalysisEnqueuer struct {
+	inputs []postcardaiapp.EnqueueInput
+}
+
+func (r *recordingAnalysisEnqueuer) EnqueuePostcardAnalysis(ctx context.Context, input postcardaiapp.EnqueueInput) (*postcardaiapp.EnqueueResult, error) {
+	r.inputs = append(r.inputs, input)
+	return &postcardaiapp.EnqueueResult{}, nil
 }
