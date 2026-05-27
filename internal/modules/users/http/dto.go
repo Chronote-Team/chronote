@@ -1,10 +1,6 @@
 package http
 
-import (
-	"time"
-
-	usersdomain "chronote-refactor/internal/modules/users/domain"
-)
+import usersdomain "chronote-refactor/internal/modules/users/domain"
 
 type RegisterRequest struct {
 	Username    string `json:"username"`
@@ -60,11 +56,4 @@ func newUserInfoResponse(user *usersdomain.User) UserInfoResponse {
 		Avatar:      user.Avatar,
 		CreatedAt:   user.CreatedAt.Format("2006-01-02 15:04:05"),
 	}
-}
-
-func avatarURL(userID uint, filename string) string {
-	if filename == "" {
-		return ""
-	}
-	return "/media/avatars/" + time.Now().Format("20060102150405") + "/" + filename
 }

@@ -116,6 +116,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-chronote-avatars}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_USE_SSL: "false"
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-http://localhost:9000/chronote-avatars}
       AI_ENABLED: ${AI_ENABLED:-false}
       AI_PROVIDER: ${AI_PROVIDER:-openai}
       AI_ENDPOINT: ${AI_ENDPOINT:-}
@@ -178,6 +179,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-chronote-avatars}
       S3_REGION: ${S3_REGION:-us-east-1}
       S3_USE_SSL: "false"
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-http://localhost:9000/chronote-avatars}
       AI_ENABLED: ${AI_ENABLED:-false}
       AI_PROVIDER: ${AI_PROVIDER:-openai}
       AI_ENDPOINT: ${AI_ENDPOINT:-}

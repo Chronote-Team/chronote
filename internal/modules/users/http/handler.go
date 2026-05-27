@@ -71,8 +71,8 @@ func (h *Handler) UploadAvatar(ctx *gin.Context) {
 		return
 	}
 
-	url := avatarURL(userID.(uint), file.Filename)
-	if err := h.service.UpdateAvatar(userID.(uint), url); err != nil {
+	url, err := h.service.UploadAvatar(userID.(uint), file)
+	if err != nil {
 		status, message := errs.MapHTTP(err)
 		response.Write(ctx, status, message, nil)
 		return

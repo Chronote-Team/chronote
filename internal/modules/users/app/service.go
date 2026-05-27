@@ -2,6 +2,10 @@ package app
 
 import (
 	"errors"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -18,6 +22,7 @@ const (
 	maxUsernameLength    = 50
 	maxDisplayNameLength = 100
 	maxEmailLength       = 255
+	maxAvatarSize        = 10 * 1024 * 1024
 )
 
 type RegisterInput struct {
@@ -28,8 +33,9 @@ type RegisterInput struct {
 }
 
 type Service struct {
-	repo      Repository
-	passwords PasswordManager
+	repo          Repository
+	passwords     PasswordManager
+	avatarStorage AvatarStorage
 }
 
 func NewService(repo Repository, passwords PasswordManager) *Service {
@@ -39,11 +45,18 @@ func NewService(repo Repository, passwords PasswordManager) *Service {
 	if passwords == nil {
 		passwords = fallbackPasswordManager{}
 	}
-	return &Service{repo: repo, passwords: passwords}
+	return &Service{repo: repo, passwords: passwords, avatarStorage: fallbackAvatarStorage{}}
 }
 
 func (s *Service) Repository() Repository {
 	return s.repo
+}
+
+func (s *Service) SetAvatarStorage(storage AvatarStorage) {
+	if storage == nil {
+		storage = fallbackAvatarStorage{}
+	}
+	s.avatarStorage = storage
 }
 
 func (s *Service) Register(input RegisterInput) (*usersdomain.User, error) {
@@ -189,6 +202,80 @@ func (s *Service) UpdateAvatar(userID uint, avatarURL string) error {
 		return errs.Internal("更新用户头像失败")
 	}
 	return nil
+}
+
+func (s *Service) UploadAvatar(userID uint, file *multipart.FileHeader) (string, error) {
+	if file == nil {
+		return "", errs.Validation("请上传头像文件")
+	}
+	user, err := s.repo.FindByID(userID)
+	if err != nil {
+		return "", errs.Internal("更新用户头像失败")
+	}
+	if user == nil {
+		return "", errs.NotFound("用户不存在")
+	}
+	filename := filepath.Base(file.Filename)
+	contentType := strings.ToLower(strings.TrimSpace(file.Header.Get("Content-Type")))
+	if err := validateAvatarFile(filename, contentType, file.Size); err != nil {
+		return "", err
+	}
+
+	src, err := file.Open()
+	if err != nil {
+		return "", errs.Validation("读取头像失败")
+	}
+	defer src.Close()
+
+	data, err := io.ReadAll(src)
+	if err != nil {
+		return "", errs.Validation("读取头像失败")
+	}
+
+	key := fmt.Sprintf("avatars/%d/%d-%s", userID, time.Now().UnixNano(), filename)
+	url, err := s.avatarStorage.Upload(key, filename, data, contentType)
+	if err != nil {
+		return "", errs.Internal("上传头像失败")
+	}
+
+	user.Avatar = url
+	user.UpdatedAt = time.Now()
+	if err := s.repo.Update(user); err != nil {
+		return "", errs.Internal("更新用户头像失败")
+	}
+	return url, nil
+}
+
+func validateAvatarFile(filename, contentType string, size int64) error {
+	if filename == "." || filename == string(filepath.Separator) || strings.TrimSpace(filename) == "" {
+		return errs.Validation("头像文件类型无效")
+	}
+	if size <= 0 {
+		return errs.Validation("头像文件不能为空")
+	}
+	if size > maxAvatarSize {
+		return errs.Validation("头像文件大小不能超过 10MB")
+	}
+	extension := strings.ToLower(filepath.Ext(filename))
+	switch extension {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp":
+	default:
+		return errs.Validation("头像文件类型无效")
+	}
+	if contentType != "" && contentType != "application/octet-stream" && !strings.HasPrefix(contentType, "image/") {
+		return errs.Validation("头像文件类型无效")
+	}
+	return nil
+}
+
+type AvatarStorage interface {
+	Upload(key, filename string, data []byte, contentType string) (string, error)
+}
+
+type fallbackAvatarStorage struct{}
+
+func (fallbackAvatarStorage) Upload(key, filename string, data []byte, contentType string) (string, error) {
+	return "https://media.example.com/" + key, nil
 }
 
 type fallbackPasswordManager struct{}

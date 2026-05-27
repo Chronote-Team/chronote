@@ -94,7 +94,7 @@ func newProductionApp(cfg *platformconfig.Config, database *gorm.DB, redisClient
 		if err != nil {
 			return nil, err
 		}
-		s3Storage = mediainfra.NewS3Storage(s3Client, cfg.S3.BucketName, "")
+		s3Storage = mediainfra.NewS3Storage(s3Client, cfg.S3.BucketName, cfg.S3.PublicBaseURL)
 		s3Checker = platforms3.NewChecker(s3Client)
 	}
 
@@ -108,6 +108,7 @@ func newProductionApp(cfg *platformconfig.Config, database *gorm.DB, redisClient
 	postcardService.SetAnalysisEnqueuer(analysisService)
 	mediaService.SetAnalysisEnqueuer(analysisService)
 	userService := usersapp.NewService(usersRepo, passwordService)
+	userService.SetAvatarStorage(s3Storage)
 	authService := authapp.NewService(usersRepo, passwordService, tokenServiceAdapter{jwtService})
 	authService.SetBlacklist(blacklist)
 	middleware := authhttp.NewMiddleware(tokenServiceAdapter{jwtService}, blacklist)

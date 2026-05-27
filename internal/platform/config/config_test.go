@@ -41,3 +41,17 @@ func TestLoadReadsAIWorkerSettingsFromEnv(t *testing.T) {
 		t.Fatal("AIWorker.RunOnce = false, want true")
 	}
 }
+
+func TestLoadReadsS3PublicBaseURLFromEnv(t *testing.T) {
+	t.Setenv("CONFIG_PATH", t.TempDir())
+	t.Setenv("S3_PUBLIC_BASE_URL", "https://media.example.com/bucket")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.S3.PublicBaseURL != "https://media.example.com/bucket" {
+		t.Fatalf("S3.PublicBaseURL = %q, want %q", cfg.S3.PublicBaseURL, "https://media.example.com/bucket")
+	}
+}

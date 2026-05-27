@@ -36,6 +36,7 @@ type Config struct {
 		BucketName      string
 		Region          string
 		UseSSL          bool
+		PublicBaseURL   string
 	}
 	Media struct {
 		MaxImageSize int64
@@ -116,6 +117,7 @@ func Load() (*Config, error) {
 	bindEnv("s3.bucketname", "S3_BUCKET")
 	bindEnv("s3.region", "S3_REGION")
 	bindEnv("s3.usessl", "S3_USE_SSL")
+	bindEnv("s3.publicbaseurl", "S3_PUBLIC_BASE_URL")
 
 	bindEnv("media.maximagesize", "MEDIA_MAX_IMAGE_SIZE")
 	bindEnv("media.maxvideosize", "MEDIA_MAX_VIDEO_SIZE")
